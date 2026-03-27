@@ -19,9 +19,9 @@ export default function WhatsAppDemo() {
   ];
 
   return (
-    <div className="bg-white rounded-lg shadow-lg max-w-md mx-auto overflow-hidden">
-      {/* WhatsApp Header */}
-      <div className="bg-gradient-to-r from-green-400 to-bharat-green text-white p-4">
+    <div className="bg-white max-w-md mx-auto overflow-hidden rounded-lg border border-gray-200 shadow-md">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4">
         <div className="flex items-center space-x-2">
           <MessageCircle size={20} />
           <div>
@@ -32,7 +32,7 @@ export default function WhatsAppDemo() {
       </div>
 
       {/* Messages */}
-      <div className="h-96 overflow-y-auto bg-gray-100 p-4 space-y-3">
+      <div className="h-96 overflow-y-auto custom-scrollbar p-4 space-y-3 bg-gray-50">
         {demoConversation.map((msg, idx) => (
           <div
             key={idx}
@@ -41,8 +41,8 @@ export default function WhatsAppDemo() {
             <div
               className={`max-w-xs px-3 py-2 rounded-lg text-sm whitespace-pre-wrap ${
                 msg.sender === 'user'
-                  ? 'bg-green-500 text-white rounded-br-none'
-                  : 'bg-white text-gray-800 rounded-bl-none shadow'
+                  ? 'bg-blue-600 text-white rounded-br-none'
+                  : 'bg-white text-gray-800 rounded-bl-none border border-gray-200 shadow-sm'
               }`}
             >
               {msg.text}
@@ -52,20 +52,20 @@ export default function WhatsAppDemo() {
       </div>
 
       {/* Input Area */}
-      <div className="bg-white border-t p-3 flex items-center space-x-2">
+      <div className="border-t border-gray-200 p-3 flex items-center space-x-2 bg-white">
         <input
           type="text"
           placeholder="Type a message..."
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+          className="flex-1 px-3 py-2 border border-blue-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-gradient-to-r from-blue-50 to-indigo-50 text-gray-800 placeholder-gray-400"
           disabled
         />
-        <button className="bg-green-500 text-white p-2 rounded-full hover:bg-green-600 transition">
+        <button className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full transition">
           <Send size={18} />
         </button>
       </div>
 
       {/* Footer Info */}
-      <div className="text-xs text-center text-gray-500 p-2">
+      <div className="text-xs text-center text-gray-500 p-2 bg-gray-50 border-t border-gray-200">
         Messages are end-to-end encrypted
       </div>
     </div>

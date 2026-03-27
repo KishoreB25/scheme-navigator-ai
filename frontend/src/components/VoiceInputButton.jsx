@@ -36,7 +36,7 @@ export default function VoiceInputButton({ onTranscript }) {
       <select
         value={language}
         onChange={(e) => changeLanguage(e.target.value)}
-        className="px-2 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-saffron"
+        className="px-3 py-2 border border-blue-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gradient-to-r from-blue-50 to-indigo-50 font-sans"
       >
         {supportedLanguages.map((lang) => (
           <option key={lang.code} value={lang.code}>
@@ -58,13 +58,13 @@ export default function VoiceInputButton({ onTranscript }) {
       </button>
 
       {(transcript || interimTranscript) && (
-        <div className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded max-w-xs truncate">
+        <div className="text-xs text-gray-700 bg-gray-100 px-3 py-1 rounded-lg border border-gray-300 max-w-xs truncate">
           {transcript || interimTranscript}
         </div>
       )}
 
       {error && (
-        <div className="text-xs text-red-600 bg-red-100 px-2 py-1 rounded">
+        <div className="text-xs text-red-700 bg-red-100 px-3 py-1 rounded-lg border border-red-300">
           {error}
         </div>
       )}

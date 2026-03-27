@@ -29,40 +29,40 @@ export default function AlertsPanel() {
   };
 
   if (isLoading) {
-    return <div className="text-center text-gray-500">Loading alerts...</div>;
+    return <div className="text-center text-gray-500 py-8 animate-pulse">Loading alerts...</div>;
   }
 
   if (alerts.length === 0) {
     return (
-      <div className="text-center text-gray-500">
-        <p>No new alerts</p>
+      <div className="text-center text-gray-500 py-12">
+        <p className="text-lg">No new alerts</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
-      <h3 className="font-bold text-lg text-gray-800 mb-3">🔔 Recent Updates</h3>
+    <div className="space-y-3">
+      <h3 className="font-bold text-lg text-gray-800 mb-4 flex items-center"><span className="mr-2">🔔</span>Recent Updates</h3>
       {alerts.map((alert) => (
         <div
           key={alert.id}
-          className={`p-3 rounded-lg border-l-4 flex justify-between items-start ${
+          className={`p-4 rounded-lg border-l-4 flex justify-between items-start bg-white transition-all hover:shadow-md ${
             alert.type === 'new'
-              ? 'bg-blue-50 border-l-blue-500'
+              ? 'border-l-blue-500'
               : alert.type === 'update'
-              ? 'bg-yellow-50 border-l-yellow-500'
-              : 'bg-green-50 border-l-green-500'
+              ? 'border-l-yellow-500'
+              : 'border-l-green-500'
           }`}
         >
           <div className="flex-1">
             <p className="text-sm font-semibold text-gray-800">{alert.message}</p>
-            <p className="text-xs text-gray-600 mt-1">
+            <p className="text-xs text-gray-600 mt-2">
               {new Date(alert.timestamp).toLocaleDateString()}
             </p>
           </div>
           <button
             onClick={() => dismissAlert(alert.id)}
-            className="text-gray-400 hover:text-gray-600 transition"
+            className="text-gray-400 hover:text-gray-600 transition ml-4"
           >
             <X size={16} />
           </button>

@@ -16,7 +16,7 @@ export default function ChatInput({ onSend, disabled }) {
   };
 
   return (
-    <div className="flex bg-slate-800/60 p-2 rounded-2xl glass shadow-indigo-500/10 border border-slate-700/50">
+    <div className="flex bg-gradient-to-r from-blue-50 to-indigo-50 p-3 rounded-full glass shadow-md border-2 border-blue-200">
       <button
         type="button"
         onClick={toggleListening}
@@ -31,7 +31,7 @@ export default function ChatInput({ onSend, disabled }) {
       </button>
 
       <textarea
-        className="flex-1 bg-transparent border-0 text-slate-200 placeholder:text-slate-500 p-3 outline-none resize-none custom-scrollbar"
+        className="flex-1 bg-transparent border-0 text-gray-800 placeholder:text-gray-400 p-3 outline-none resize-none custom-scrollbar font-sans"
         placeholder="Type your message or use voice input..."
         value={text}
         rows={1}

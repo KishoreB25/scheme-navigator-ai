@@ -14,7 +14,7 @@ export default function Home() {
           <div className="sticky top-20">
             <button
               onClick={() => setShowProfile(!showProfile)}
-              className="w-full mb-4 bg-saffron text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition"
+              className="w-full mb-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition font-semibold"
             >
               {showProfile ? 'Hide' : 'Show'} Profile
             </button>

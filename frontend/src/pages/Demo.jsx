@@ -1,28 +1,4 @@
 import ChatInterface from '../components/ChatInterface';
 
 export default function Demo() {
-  return (
-    <div className="max-w-4xl mx-auto p-6 min-h-[calc(100vh-80px)]">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-saffron mb-2">PolicyGPT Bharat Demo</h1>
-        <p className="text-gray-600 text-lg">
-          Try the quick demo flow: Voice input → Eligibility check → Discover missed schemes
-        </p>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <div className="mb-4 p-4 bg-blue-50 border-l-4 border-bharat-blue rounded">
-          <h2 className="font-bold text-bharat-blue mb-2">Quick Demo Instructions:</h2>
-          <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
-            <li>Click the <span className="font-mono text-red-600">🎤 Record Voice</span> button</li>
-            <li>Say: "I'm a 35-year-old farmer from Maharashtra with an annual income of 2 lakhs"</li>
-            <li>System will show eligible schemes</li>
-            <li>Click <span className="font-mono">Find Missed Benefits</span> to discover more</li>
-          </ul>
-        </div>
-
-        <ChatInterface demoMode={true} />
-      </div>
-    </div>
-  );
-}
+  return (\n    <div className=\"max-w-4xl mx-auto p-6 min-h-[calc(100vh-80px)] space-y-8\">\n      {/* Header */}\n      <div className=\"animate-slide-up\">\n        <h1 className=\"text-5xl font-display font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-3\">\n          PolicyGPT Bharat Demo\n        </h1>\n        <p className=\"text-lg text-slate-300 font-light\">\n          Try the quick demo flow: <span className=\"text-blue-400 font-medium\">Voice input</span> → <span className=\"text-purple-400 font-medium\">Eligibility check</span> → <span className=\"text-emerald-400 font-medium\">Discover schemes\n          </span>\n        </p>\n      </div>\n\n      {/* Instructions Card */}\n      <div className=\"glass-card p-6 border-l-4 border-l-blue-500 animate-fade-in\">\n        <h2 className=\"font-display font-bold text-white mb-4 text-lg flex items-center\">💡 Quick Demo Instructions</h2>\n        <ul className=\"space-y-3 text-sm text-slate-300\">\n          <li className=\"flex items-start gap-3\">\n            <span className=\"text-blue-400 font-bold mt-0.5\">1.</span>\n            <span>Click the <span className=\"bg-red-500/20 text-red-300 px-2 py-1 rounded font-mono\">🎤 Record Voice</span> button</span>\n          </li>\n          <li className=\"flex items-start gap-3\">\n            <span className=\"text-purple-400 font-bold mt-0.5\">2.</span>\n            <span>Say: <span className=\"bg-slate-700/50 text-slate-100 px-2 py-1 rounded font-mono\">\"I'm a 35-year-old farmer from Maharashtra with 2 lakhs income\"</span></span>\n          </li>\n          <li className=\"flex items-start gap-3\">\n            <span className=\"text-emerald-400 font-bold mt-0.5\">3.</span>\n            <span>System will show eligible schemes</span>\n          </li>\n          <li className=\"flex items-start gap-3\">\n            <span className=\"text-pink-400 font-bold mt-0.5\">4.</span>\n            <span>Click <span className=\"bg-slate-700/50 text-slate-100 px-2 py-1 rounded font-mono\">Find Missed Benefits</span> to discover more</span>\n          </li>\n        </ul>\n      </div>\n\n      {/* Chat Interface */}\n      <div className=\"animate-fade-in\" style={{ animationDelay: '0.1s' }}>\n        <ChatInterface demoMode={true} />\n      </div>\n    </div>\n  );\n}"

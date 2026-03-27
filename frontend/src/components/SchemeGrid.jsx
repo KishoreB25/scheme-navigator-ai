@@ -3,8 +3,8 @@ import SchemeCard from './SchemeCard';
 export default function SchemeGrid({ schemes = [] }) {
   if (!schemes || schemes.length === 0) {
     return (
-      <div className="text-center text-gray-500 py-8">
-        <p>No schemes available</p>
+      <div className="text-center text-gray-500 py-12">
+        <p className="text-lg">No schemes available</p>
       </div>
     );
   }

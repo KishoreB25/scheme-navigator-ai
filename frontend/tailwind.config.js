@@ -19,8 +19,8 @@ export default {
         ineligible: '#EF4444',
       },
       fontFamily: {
-        sans: ['"Inter"', 'system-ui', 'sans-serif'],
-        display: ['"Outfit"', 'system-ui', 'sans-serif'],
+        sans: ['Poppins', 'system-ui', 'sans-serif'],
+        display: ['Nunito', 'system-ui', 'sans-serif'],
       },
       animation: {
         'pulse-dot': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',

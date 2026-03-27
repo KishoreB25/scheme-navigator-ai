@@ -9,12 +9,12 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 h-full flex flex-col glass z-20 border-r border-slate-700/50 flex-shrink-0">
-      <div className="p-6 flex items-center gap-3 border-b border-slate-800/50">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-lg shadow-glow">
+    <aside className="w-64 h-full flex flex-col bg-white z-20 border-r border-gray-200 flex-shrink-0">
+      <div className="p-6 flex items-center gap-3 border-b border-gray-200">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-white font-bold text-lg">
           P
         </div>
-        <h1 className="text-xl font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+        <h1 className="text-xl font-bold text-gray-800">
           PolicyGPT
         </h1>
       </div>

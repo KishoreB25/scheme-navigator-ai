@@ -55,27 +55,27 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="h-full flex flex-col relative z-10 w-full max-w-4xl mx-auto glass-panel border-r border-slate-700/50 shadow-2xl bg-surface/80 backdrop-blur-3xl animate-fade-in relative">
+    <div className="h-full flex flex-col relative z-10 w-full max-w-4xl mx-auto bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200 animate-fade-in">
       {/* Header */}
-      <div className="p-4 border-b border-slate-700/50 glass z-20 sticky top-0">
-        <h2 className="text-xl font-display font-semibold text-slate-100 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700 z-20 sticky top-0">
+        <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
           AI Assistant Active
         </h2>
-        <p className="text-sm text-slate-400">Ask me anything about govt schemes</p>
+        <p className="text-sm text-blue-100">Ask me anything about govt schemes</p>
       </div>
 
       {/* Messages Array */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar scroll-smooth">
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar scroll-smooth bg-gray-50">
         {messages.map((msg) => (
           <ChatBubble key={msg.id} message={msg} />
         ))}
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-slate-800/80 border border-slate-700 rounded-2xl rounded-tl-sm p-4 max-w-[75%] glass-card flex items-center gap-2">
-              <span className="w-2 h-2 bg-primary rounded-full animate-pulse-dot"></span>
-              <span className="w-2 h-2 bg-primary rounded-full animate-pulse-dot" style={{ animationDelay: '0.2s' }}></span>
-              <span className="w-2 h-2 bg-primary rounded-full animate-pulse-dot" style={{ animationDelay: '0.4s' }}></span>
+            <div className="bg-white border border-gray-200 rounded-lg rounded-tl-none p-4 max-w-[75%] shadow-sm flex items-center gap-2">
+              <span className="w-2 h-2 bg-blue-600 rounded-full animate-pulse-dot"></span>
+              <span className="w-2 h-2 bg-blue-600 rounded-full animate-pulse-dot" style={{ animationDelay: '0.2s' }}></span>
+              <span className="w-2 h-2 bg-blue-600 rounded-full animate-pulse-dot" style={{ animationDelay: '0.4s' }}></span>
             </div>
           </div>
         )}
@@ -83,7 +83,7 @@ export default function ChatPage() {
       </div>
 
       {/* Input Box */}
-      <div className="p-4 border-t border-slate-700/50 glass z-20">
+      <div className="p-6 border-t border-gray-200 bg-white rounded-b-lg z-20">
         <ChatInput onSend={handleSend} disabled={loading} />
       </div>
     </div>
