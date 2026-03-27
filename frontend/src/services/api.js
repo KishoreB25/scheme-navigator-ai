@@ -1,85 +1,85 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000'; // Default FastAPI port
+const API_BASE_URL = 'http://localhost:8000'; // FastAPI backend
 
-// Helper to simulate delay for mock responses
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+// Configure axios with reasonable timeout
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+});
+
+// Helper to transform backend response to frontend format
+const transformSchemeResponse = (backendSchemes) => {
+  return backendSchemes.map((scheme) => ({
+    id: scheme.id,
+    name: scheme.name,
+    description: scheme.description,
+    eligible: scheme.eligible || false,
+    benefits: scheme.benefits || [],
+    steps: scheme.steps ? scheme.steps.split('\n') : [],
+    documents: scheme.documents || [],
+    timeline: scheme.timeline || 'Varies',
+    source: scheme.source || 'Retrieved',
+  }));
+};
 
 export const sendMessage = async (text, profile) => {
   try {
-    // Attempt to hit the real backend first
-    const response = await axios.post(`${API_BASE_URL}/chat`, { query: text, profile });
-    return response.data;
-  } catch (error) {
-    console.warn("Backend not available, using mock response for demo.");
-    await delay(1500); // Simulate network latency
-
-    // MOCK RESPONSE
-    if (text.toLowerCase().includes('farmer')) {
-      return {
-        text: "Based on your profile as a farmer from Maharashtra, I've found a few schemes you are highly eligible for. Here are the details:",
-        schemes: [
-          {
-            name: "Pradhan Mantri Kisan Samman Nidhi (PM-KISAN)",
-            eligibility_status: true,
-            description: "An initiative by the government of India in which all farmers will get up to ₹6,000 per year as minimum income support.",
-            benefits: [
-              "₹6,000 per year income support",
-              "Direct benefit transfer (DBT) to bank account",
-              "Financial independence for crop procurement"
-            ],
-            steps: "Visit pmkisan.gov.in -> Click on 'New Farmer Registration' -> Enter Aadhaar and fill the form."
-          },
-          {
-            name: "MahaDBT Farmer Scheme",
-            eligibility_status: true,
-            description: "A centralized portal by the Maharashtra Government for various farmer welfare programs, equipment subsidies, and irrigation facilities.",
-            benefits: [
-              "Subsidies on agricultural equipment",
-              "Financial assistance for drip irrigation",
-              "Subsidized high-quality seeds"
-            ],
-            steps: "Register on mahadbtmahait.gov.in -> Create a profile -> Apply under 'Agriculture Department' schemes."
-          }
-        ]
-      };
-    }
-
-    return {
-      text: "I understand. Could you provide a bit more detail about your occupation or requirements so I can find the perfect government schemes for you?",
-      schemes: []
+    // Build request payload
+    const payload = {
+      query: text,
+      profile: profile || {},
     };
+
+    // Call backend chat endpoint
+    const response = await apiClient.post('/chat', payload);
+
+    // Transform and return response
+    return {
+      text: response.data.text,
+      schemes: transformSchemeResponse(response.data.schemes || []),
+      intent: response.data.intent,
+      session_id: response.data.session_id,
+    };
+  } catch (error) {
+    console.error('API Error:', error.message);
+    throw new Error(
+      error.response?.data?.detail || 'Failed to fetch schemes. Please check if the backend is running.'
+    );
   }
 };
 
 export const updateProfile = async (profileData) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/profile`, profileData);
-    return response.data;
+    const payload = {
+      profile: profileData || {},
+    };
+
+    const response = await apiClient.post('/profile', payload);
+
+    return {
+      user_id: response.data.user_id,
+      profile: response.data.profile,
+      saved: response.data.saved,
+      message: response.data.message,
+    };
   } catch (error) {
-    console.warn("Backend not available, using mock for profile update.");
-    await delay(800);
-    return { success: true, message: "Profile saved locally for session." };
+    console.error('Profile Update Error:', error.message);
+    throw new Error('Failed to save profile.');
   }
 };
 
 export const getMissedBenefits = async (profileData) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/missed`, profileData);
-    return response.data;
-  } catch (error) {
-    console.warn("Backend not available, using mock for missed benefits.");
-    await delay(2000);
+    const response = await apiClient.post('/missed', profileData || {});
+
     return {
-      missed_schemes: [
-        {
-          name: "Ayushman Bharat PM-JAY",
-          eligibility_status: true,
-          description: "A health insurance scheme offering Rs. 5 Lakh cover per family per year.",
-          benefits: ["Free treatment at empanelled hospitals", "Covers pre and post hospitalization expenses", "No cap on family size"],
-          steps: "Check eligibility using your mobile or ration card number on mera.pmjay.gov.in and visit nearest CSC or empanelled hospital for e-card."
-        }
-      ]
+      missed_schemes: transformSchemeResponse(response.data.missed_schemes || []),
+      count: response.data.count || 0,
+      message: response.data.message,
     };
+  } catch (error) {
+    console.error('Missed Benefits Error:', error.message);
+    throw new Error('Failed to fetch missed benefits.');
   }
 };
