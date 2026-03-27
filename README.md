@@ -1,4 +1,5 @@
 # scheme-navigator-ai
+Bharat policy Copilot
 
 ```text
 policygpt-bharat/
