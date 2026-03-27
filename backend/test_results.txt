@@ -1,0 +1,53 @@
+﻿python : Traceback (most 
+recent call last):
+At line:1 char:1
++ python test_api.py 2>&1 | 
+Out-File -Encoding utf8 
+test_results.txt; G ...
++ ~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          
+    : NotSpecified: (Trace  
+  back (most recent call    
+ last)::String) [], Remo    
+teException
+    + FullyQualifiedErrorId 
+    : NativeCommandError
+ 
+  File "D:\scheme-navigator-
+ai\backend\test_api.py", 
+line 41, in <module>
+============================================================
+TEST 1: Health Check (GET /)
+  Status: 200
+  Message: PolicyGPT Bharat API is running
+  Agents: ['Query Understanding Agent', 'RAG Retrieval Agent', 'Eligibility Agent', 'Compliance Guardrail Agent', 'Action Agent', 'Alert Agent']
+  Vector DB: {'total_chunks': 25, 'total_schemes': 23, 'initialized': True}
+
+============================================================
+TEST 2: Chat - Farmer Query (POST /chat)
+  Status: 200
+  Intent: search
+  Eligible: 4/5
+  Compliance: True
+  Response text: I found 5 government scheme(s) matching your query: Pradhan Mantri Suraksha Bima Yojana (PMSBY), Atal Pension Yojana (APY), Ayushman Bharat - Pradhan Mantri Jan Arogya Yojana (AB-PMJAY), Pradhan Mantr...
+  Schemes found:
+    print(f"    - 
+{s['name']} | {s.get('eligib
+ility_status', 'N/A')}")
+  File "C:\Program Files\Win
+dowsApps\PythonSoftwareFound
+ation.Python.3.11_3.11.2544.
+0_x64__qbz5n2kfra8p0\Lib\enc
+odings\cp1252.py", line 19, 
+in encode
+    return codecs.charmap_en
+code(input,self.errors,encod
+ing_table)[0]
+           ^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^
+UnicodeEncodeError: 
+'charmap' codec can't 
+encode character '\u2705' 
+in position 61: character 
+maps to <undefined>
