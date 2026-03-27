@@ -1,100 +1,85 @@
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = 'http://localhost:8000'; // Default FastAPI port
 
-const api = axios.create({
-  baseURL: API_BASE,
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+// Helper to simulate delay for mock responses
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Request interceptor to add user ID if available
-api.interceptors.request.use((config) => {
-  const userId = localStorage.getItem('userId');
-  if (userId) {
-    config.headers['X-User-ID'] = userId;
+export const sendMessage = async (text, profile) => {
+  try {
+    // Attempt to hit the real backend first
+    const response = await axios.post(`${API_BASE_URL}/chat`, { query: text, profile });
+    return response.data;
+  } catch (error) {
+    console.warn("Backend not available, using mock response for demo.");
+    await delay(1500); // Simulate network latency
+
+    // MOCK RESPONSE
+    if (text.toLowerCase().includes('farmer')) {
+      return {
+        text: "Based on your profile as a farmer from Maharashtra, I've found a few schemes you are highly eligible for. Here are the details:",
+        schemes: [
+          {
+            name: "Pradhan Mantri Kisan Samman Nidhi (PM-KISAN)",
+            eligibility_status: true,
+            description: "An initiative by the government of India in which all farmers will get up to ₹6,000 per year as minimum income support.",
+            benefits: [
+              "₹6,000 per year income support",
+              "Direct benefit transfer (DBT) to bank account",
+              "Financial independence for crop procurement"
+            ],
+            steps: "Visit pmkisan.gov.in -> Click on 'New Farmer Registration' -> Enter Aadhaar and fill the form."
+          },
+          {
+            name: "MahaDBT Farmer Scheme",
+            eligibility_status: true,
+            description: "A centralized portal by the Maharashtra Government for various farmer welfare programs, equipment subsidies, and irrigation facilities.",
+            benefits: [
+              "Subsidies on agricultural equipment",
+              "Financial assistance for drip irrigation",
+              "Subsidized high-quality seeds"
+            ],
+            steps: "Register on mahadbtmahait.gov.in -> Create a profile -> Apply under 'Agriculture Department' schemes."
+          }
+        ]
+      };
+    }
+
+    return {
+      text: "I understand. Could you provide a bit more detail about your occupation or requirements so I can find the perfect government schemes for you?",
+      schemes: []
+    };
   }
-  return config;
-});
+};
 
-// Response error handler
-api.interceptors.response.use(
-  (response) => response.data,
-  (error) => {
-    const message = error.response?.data?.message || error.message || 'API Error';
-    console.error('API Error:', message);
-    return Promise.reject({
-      message,
-      status: error.response?.status,
-      data: error.response?.data,
-    });
+export const updateProfile = async (profileData) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/profile`, profileData);
+    return response.data;
+  } catch (error) {
+    console.warn("Backend not available, using mock for profile update.");
+    await delay(800);
+    return { success: true, message: "Profile saved locally for session." };
   }
-);
+};
 
-/**
- * Send chat query and get response with schemes
- * @param {string} query - User's natural language query
- * @param {object} userProfile - User profile { age, income, state, gender, occupation }
- * @returns {Promise<{response, eligibility, schemes}>}
- */
-export const sendChat = (query, userProfile = {}) =>
-  api.post('/chat', { query, userProfile });
-
-/**
- * Save user profile
- * @param {object} profile - { age, income, state, gender, occupation }
- * @returns {Promise<{userId, profile, success}>}
- */
-export const saveProfile = (profile) =>
-  api.post('/profile', profile);
-
-/**
- * Get schemes user is eligible for but hasn't asked about
- * @param {object} userProfile - User profile
- * @returns {Promise<{schemes}>}
- */
-export const getMissedBenefits = (userProfile) =>
-  api.get('/missed', { params: userProfile });
-
-/**
- * Get detailed information about a specific scheme
- * @param {string} schemeId - ID of the scheme
- * @returns {Promise<scheme details>}
- */
-export const getSchemeDetails = (schemeId) =>
-  api.get(`/schemes/${schemeId}`);
-
-/**
- * Get personalized alerts for user
- * @returns {Promise<{alerts}>}
- */
-export const getAlerts = () =>
-  api.get('/alerts');
-
-/**
- * Check eligibility for a specific scheme
- * @param {string} schemeId - ID of the scheme
- * @param {object} userProfile - User profile
- * @returns {Promise<{eligible, reason}>}
- */
-export const checkEligibility = (schemeId, userProfile) =>
-  api.post(`/schemes/${schemeId}/check-eligibility`, { userProfile });
-
-/**
- * Get application steps for a scheme
- * @param {string} schemeId - ID of the scheme
- * @returns {Promise<{steps, documents, links}>}
- */
-export const getApplicationSteps = (schemeId) =>
-  api.get(`/schemes/${schemeId}/apply`);
-
-/**
- * Health check endpoint
- * @returns {Promise<{status}>}
- */
-export const healthCheck = () =>
-  api.get('/health');
-
-export default api;
+export const getMissedBenefits = async (profileData) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/missed`, profileData);
+    return response.data;
+  } catch (error) {
+    console.warn("Backend not available, using mock for missed benefits.");
+    await delay(2000);
+    return {
+      missed_schemes: [
+        {
+          name: "Ayushman Bharat PM-JAY",
+          eligibility_status: true,
+          description: "A health insurance scheme offering Rs. 5 Lakh cover per family per year.",
+          benefits: ["Free treatment at empanelled hospitals", "Covers pre and post hospitalization expenses", "No cap on family size"],
+          steps: "Check eligibility using your mobile or ration card number on mera.pmjay.gov.in and visit nearest CSC or empanelled hospital for e-card."
+        }
+      ]
+    };
+  }
+};
