@@ -36,7 +36,7 @@ TEST 4 Missed: 200 | Count: 11
   >> Pradhan Mantri Matru Vandana Yojana (PMMVY)
 TEST 5 All-Schemes: 200 | Total: 23
 TEST 6 Compliance: 200 | Found: 5 | Text: ### Scheme Details
-Unfortunately, the scheme you're looking for, "XYZ nonexistent scheme," is not available in the retrieved data.
+Unfortunately, the XYZ nonexistent scheme is not found in the retrieved data. 
 
-However, here are 
+However, here are some other schemes that might be 
 TEST 7 WhatsApp: 200 | Has response: True

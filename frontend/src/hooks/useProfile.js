@@ -13,6 +13,7 @@ export const useProfile = () => {
       return stored
         ? JSON.parse(stored)
         : {
+            username: '',
             age: null,
             income: null,
             state: '',
@@ -21,6 +22,7 @@ export const useProfile = () => {
           };
     } catch {
       return {
+        username: '',
         age: null,
         income: null,
         state: '',
@@ -36,6 +38,8 @@ export const useProfile = () => {
   // Validate profile data
   const validateField = useCallback((field, value) => {
     switch (field) {
+      case 'username':
+        return !value || (value.trim().length > 0 && value.length <= 50);
       case 'age':
         return value !== null && value > 0 && value < 120;
       case 'income':
@@ -76,8 +80,8 @@ export const useProfile = () => {
     setError(null);
     try {
       const response = await saveProfile(profile);
-      if (response.userId) {
-        localStorage.setItem('userId', response.userId);
+      if (response.user_id) {
+        localStorage.setItem('userId', response.user_id);
       }
       return response;
     } catch (err) {
@@ -92,6 +96,7 @@ export const useProfile = () => {
   // Reset to empty profile
   const reset = useCallback(() => {
     const emptyProfile = {
+      username: '',
       age: null,
       income: null,
       state: '',

@@ -2,6 +2,7 @@
 Alert Agent
 Manages user profiles and implements Missed Benefits Detection.
 Scans all schemes against a user profile to find unclaimed benefits.
+Uses MongoDB for persistence.
 """
 
 from typing import Dict, List, Optional, Set
@@ -12,15 +13,25 @@ class AlertAgent:
     """Manages alerts, user profiles, and missed benefits detection."""
 
     def __init__(self):
-        self.user_profiles: Dict[str, Dict] = {}
+        self.user_profiles: Dict[str, Dict] = {}  # In-memory fallback
         self.alerts: Dict[str, List] = {}
+        self._db = None
+
+    def initialize_db(self, db_service):
+        """Initialize database service for persistence"""
+        self._db = db_service
 
     def save_profile(self, user_id: str, profile: Dict) -> Dict:
-        """Save user profile."""
+        """Save user profile (to MongoDB if available, else in-memory)."""
         profile_copy = profile.copy()
-        profile_copy["last_updated"] = datetime.now().isoformat()
-        self.user_profiles[user_id] = profile_copy
+        profile_copy["last_updated"] = datetime.utcnow().isoformat()
 
+        # Save to MongoDB if available
+        if self._db and self._db.is_available:
+            return self._db.save_user_profile(user_id, profile_copy)
+
+        # Fallback: in-memory storage
+        self.user_profiles[user_id] = profile_copy
         return {
             "user_id": user_id,
             "profile": profile_copy,
@@ -28,7 +39,14 @@ class AlertAgent:
         }
 
     def get_profile(self, user_id: str) -> Optional[Dict]:
-        """Get user profile."""
+        """Get user profile (from MongoDB if available)."""
+        # Try MongoDB first
+        if self._db and self._db.is_available:
+            profile = self._db.get_user_profile(user_id)
+            if profile:
+                return profile
+
+        # Fallback: in-memory
         return self.user_profiles.get(user_id)
 
     def detect_missed_benefits(
@@ -36,6 +54,7 @@ class AlertAgent:
         user_profile: Dict,
         all_schemes: List[Dict],
         already_shown: Set[str] = None,
+        user_id: str = None,
     ) -> List[Dict]:
         """
         Missed Benefits Detector:
@@ -74,6 +93,14 @@ class AlertAgent:
         # Sort by relevance (most criteria matched first)
         missed_schemes.sort(key=lambda x: x.get("relevance_score", 0), reverse=True)
 
+        # Save to MongoDB if user_id provided
+        if user_id and self._db and self._db.is_available:
+            self._db.save_missed_scheme_detection(
+                user_id,
+                user_profile,
+                missed_schemes
+            )
+
         return missed_schemes
 
     def generate_alerts(self, user_id: str, new_schemes: List[Dict]) -> Dict:
@@ -86,7 +113,7 @@ class AlertAgent:
                 "scheme_id": scheme.get("scheme_id", scheme.get("id")),
                 "message": f"You may be eligible for: {scheme.get('scheme_name', scheme.get('name', 'Unknown'))}",
                 "benefits_summary": scheme.get("benefits", ""),
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.utcnow().isoformat(),
                 "official_link": scheme.get("official_link", ""),
             }
             alerts.append(alert)
