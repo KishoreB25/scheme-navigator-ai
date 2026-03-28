@@ -15,6 +15,7 @@ from agents import (
     ActionAgent,
     AlertAgent,
 )
+from services.llm_service import GeminiService
 
 
 class PipelineOrchestrator:
@@ -35,6 +36,7 @@ class PipelineOrchestrator:
         self.compliance_agent = ComplianceAgent()
         self.action_agent = ActionAgent()
         self.alert_agent = AlertAgent()
+        self.llm_service = GeminiService()
         self._initialized = False
 
     def initialize(self):
@@ -77,7 +79,8 @@ class PipelineOrchestrator:
 
         # ─── Step 4: Compliance Guardrail Agent ───
         compliance_result = self.compliance_agent.process(
-            all_schemes_with_status, query, intent
+            all_schemes_with_status, query, intent,
+            llm_service=self.llm_service, profile=merged_profile,
         )
 
         # ─── Step 5: Action Agent ───

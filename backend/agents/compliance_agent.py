@@ -88,15 +88,32 @@ class ComplianceAgent:
         return [self.validate_scheme(s) for s in schemes]
 
     def generate_response_text(
-        self, schemes: List[Dict], query: str, intent: str
+        self, schemes: List[Dict], query: str, intent: str,
+        llm_service=None, profile: Dict = None,
     ) -> str:
         """
         Generate compliant response text.
-        Uses ONLY data from validated schemes — no hallucinated content.
+        Uses LLM if available, otherwise falls back to templates.
         """
         if not schemes:
             return NO_RESULTS_RESPONSE
 
+        # Try LLM generation first
+        if llm_service and llm_service.is_available:
+            llm_text = llm_service.generate_response(
+                query=query,
+                schemes=schemes,
+                intent=intent,
+                profile=profile,
+            )
+            if llm_text:
+                return llm_text
+
+        # Fallback to templates
+        return self._template_response(schemes, intent)
+
+    def _template_response(self, schemes: List[Dict], intent: str) -> str:
+        """Fallback template-based response when LLM is unavailable."""
         scheme_names = [s["name"] for s in schemes]
         eligible_names = [s["name"] for s in schemes if s.get("eligible", False)]
         total = len(schemes)
@@ -139,11 +156,15 @@ class ComplianceAgent:
         return text
 
     def process(
-        self, eligible_schemes: List[Dict], query: str, intent: str
+        self, eligible_schemes: List[Dict], query: str, intent: str,
+        llm_service=None, profile: Dict = None,
     ) -> Dict:
         """Process and return compliant, validated response."""
         validated_schemes = self.validate_response(eligible_schemes)
-        response_text = self.generate_response_text(validated_schemes, query, intent)
+        response_text = self.generate_response_text(
+            validated_schemes, query, intent,
+            llm_service=llm_service, profile=profile,
+        )
 
         return {
             "response_text": response_text,

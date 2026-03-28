@@ -16,6 +16,14 @@ class Settings(BaseSettings):
     openai_api_key: Optional[str] = None
     llm_model: str = "gpt-3.5-turbo"
 
+    # Google Gemini
+    google_api_key: Optional[str] = None
+    gemini_model: str = "gemini-2.0-flash"
+
+    # Groq
+    groq_api_key: Optional[str] = None
+    groq_model: str = "llama-3.3-70b-versatile"
+
     # Embeddings
     embedding_model: str = "all-MiniLM-L6-v2"
 
@@ -32,7 +40,7 @@ class Settings(BaseSettings):
     min_relevance_score: float = 0.3
 
     class Config:
-        env_file = ".env"
+        env_file = (".env", "../.env")
         extra = "ignore"
 
 

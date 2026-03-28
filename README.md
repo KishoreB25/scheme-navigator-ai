@@ -82,10 +82,8 @@ policygpt-bharat/
 
 ## ⏳ What's Missing (Not Critical)
 
-- ❌ Vector DB integration (FAISS/Chroma) - Currently using keyword search
-- ❌ Real LLM integration (GPT-3.5) - Using template responses
 - ⏳ Twilio WhatsApp integration - Endpoint exists, not connected
-- ⚠️ Only 6 schemes in database - Need 15+ for full demo
+- ⚠️ Only 23 schemes in database - Need 50+ for a full production release
 
 ---
 
@@ -202,6 +200,8 @@ python test_api.py
 - FastAPI - REST API framework
 - Python 3.8+
 - Pydantic - Data validation
+- Groq SDK - LLM Generation (Llama-3.3-70b)
+- FAISS & Sentence Transformers - Local Vector DB and Embeddings
 
 **Frontend**:
 - React 19.2
@@ -253,27 +253,46 @@ VITE_API_URL=http://localhost:8000
 
 ---
 
-## 🤝 Architecture Overview
+## 🤝 Architecture Overview (Multi-Agent RAG Pipeline)
 
-```
+```text
         Web Browser (React)
              ↓ (API)
          Frontend UI
-             ↓ (HTTP)
+             ↓ (HTTP POST /chat, /profile)
        FastAPI Backend
              ↓
-     Agent Orchestrator
+     Pipeline Orchestrator
              ↓
     ┌─────────┴─────────┐
     ↓                   ↓
-  Agents            Database
-  1. Query          6 Schemes
-  2. RAG            User Profiles
-  3. Eligibility    Alerts
+  Agents            Database (FAISS + JSON)
+  1. Query          23 Government Schemes
+  2. RAG (FAISS)    User Profiles (In-memory)
+  3. Eligibility    
   4. Compliance
-  5. Action
-  6. Alert
+  5. LLM Service (Groq Llama-3.3)
+  6. Action
+  7. Alert (Missed Benefits)
 ```
+
+### 🧠 Pipeline Deep Dive
+
+1. **Query Agent**: Extracts intent and profile entities (age, occupation, state, income) from the user's natural language question.
+2. **RAG Agent (Retrieval)**: Uses a hybrid approach—FAISS vector semantic search via `sentence-transformers` + intelligent keyword matching to retrieve the most relevant schemes without hallucination.
+3. **Eligibility Agent**: A strict rule engine that checks the user's profile against the official scheme criteria, providing a detailed ✅/❌/⚠️ breakdown.
+4. **Compliance Agent**: Enforces strict guardrails. Ensures responses only use retrieved data and always contain mandatory fields (benefits, documents, official links).
+5. **LLM Generation Service (Generation)**: Uses the fast Groq API (`llama-3.3-70b-versatile`) to translate the strict, validated data into a warm, helpful, and natural language response.
+6. **Action Agent**: Extracts and formats exact application steps and required documents.
+7. **Alert Agent (Missed Benefits Detector)**: Runs silently in the background, scanning the entire scheme database against the user profile to detect "Missed Benefits" the user is eligible for but didn't explicitly ask about.
+
+### 💻 Frontend Details
+
+The frontend is a React 19 single-page application built with Vite and Tailwind CSS. It features:
+- **Interactive Chat Interface**: A sleek, modern messenger where users converse with the AI in natural language.
+- **Dynamic User Profile Manager**: A live form that holds age, income, state, and occupation state, which is automatically appended to every chat query.
+- **Missed Benefits Dashboard**: A dedicated side panel displaying proactive alerts and "hidden" schemes discovered by the Alert Agent.
+- **Voice Input**: Web Speech API integration, allowing rural or differently-abled users to speak their queries instead of typing.
 
 ---
 

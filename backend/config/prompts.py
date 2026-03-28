@@ -91,3 +91,25 @@ NO_RESULTS_RESPONSE = (
 )
 
 MISSING_INFO_RESPONSE = "This information is not available in the retrieved data."
+
+GEMINI_RESPONSE_PROMPT = """You are responding to a user query about Indian government schemes.
+
+**User Query**: {query}
+**Detected Intent**: {intent}
+**User Profile**: {profile}
+
+**Retrieved Scheme Data** ({scheme_count} scheme(s)):
+{scheme_context}
+
+---
+
+**Instructions**:
+1. Use ONLY the scheme data provided above. Do NOT add any information not present in the data.
+2. Write a helpful, conversational response in English.
+3. For each scheme, include: scheme name, eligibility status, key benefits, required documents, how to apply, and the official link.
+4. Use bullet points and clear formatting (markdown).
+5. If a user is eligible, congratulate them. If not, explain why clearly.
+6. If information is missing from the data, say "This information is not available in the retrieved data."
+7. End with a brief encouraging note.
+8. Keep the response concise — no more than 300 words total.
+"""
