@@ -93,67 +93,24 @@ class ComplianceAgent:
     ) -> str:
         """
         Generate compliant response text.
-        Uses LLM if available, otherwise falls back to templates.
+        Returns a brief summary only - detailed scheme info shown in cards below.
         """
         if not schemes:
             return NO_RESULTS_RESPONSE
 
-        # Try LLM generation first
-        if llm_service and llm_service.is_available:
-            llm_text = llm_service.generate_response(
-                query=query,
-                schemes=schemes,
-                intent=intent,
-                profile=profile,
-            )
-            if llm_text:
-                return llm_text
-
-        # Fallback to templates
+        # Always use template (brief summary) instead of LLM for cleaner UI
+        # Cards will display all detailed information
         return self._template_response(schemes, intent)
 
     def _template_response(self, schemes: List[Dict], intent: str) -> str:
         """Fallback template-based response when LLM is unavailable."""
-        scheme_names = [s["name"] for s in schemes]
-        eligible_names = [s["name"] for s in schemes if s.get("eligible", False)]
+        eligible_count = sum(1 for s in schemes if s.get("eligible", False))
         total = len(schemes)
-
-        if intent == "eligibility":
-            if eligible_names:
-                text = (
-                    f"Based on your profile, you are eligible for: "
-                    f"{', '.join(eligible_names)}.\n\n"
-                    f"I found {total} relevant scheme(s) in total. "
-                    f"See detailed eligibility breakdown below for each scheme."
-                )
-            else:
-                text = (
-                    f"Based on your profile information, I found {total} relevant scheme(s): "
-                    f"{', '.join(scheme_names)}.\n\n"
-                    f"However, you may not meet all eligibility criteria. "
-                    f"Check the detailed breakdown below."
-                )
-
-        elif intent == "apply":
-            text = (
-                f"Here are the application steps for: {', '.join(scheme_names[:3])}.\n\n"
-                f"Detailed steps, required documents, and official links are provided below."
-            )
-
-        elif intent == "details":
-            text = (
-                f"Here is detailed information about: {', '.join(scheme_names[:3])}.\n\n"
-                f"All information below is sourced from official government portals."
-            )
-
-        else:  # search
-            text = (
-                f"I found {total} government scheme(s) matching your query: "
-                f"{', '.join(scheme_names[:5])}.\n\n"
-                f"Each scheme includes eligibility, benefits, required documents, and application steps."
-            )
-
-        return text
+        
+        if eligible_count > 0:
+            return f"Great news! You are eligible for {eligible_count} scheme(s). Check out the details below."
+        else:
+            return f"I found {total} relevant scheme(s) for you. Check your eligibility details below."
 
     def process(
         self, eligible_schemes: List[Dict], query: str, intent: str,

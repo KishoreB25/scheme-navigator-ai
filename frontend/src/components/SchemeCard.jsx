@@ -47,13 +47,12 @@ export default function SchemeCard({ scheme }) {
 
         {/* Eligibility Reasons */}
         {scheme.eligibility_reasons && scheme.eligibility_reasons.length > 0 && (
-          <div className="mb-3 bg-gray-50 rounded-lg p-3 border border-gray-100">
-            <p className="text-xs font-semibold text-gray-700 mb-2">Eligibility Breakdown:</p>
-            <div className="space-y-1">
+          <div className="mb-3 bg-blue-50 rounded-lg p-3 border border-blue-100">
+            <p className="text-xs font-semibold text-blue-900 mb-2">Eligibility Breakdown:</p>
+            <div className="space-y-1.5">
               {scheme.eligibility_reasons.map((reason, idx) => (
-                <div key={idx} className="text-xs text-gray-600 flex items-start gap-1.5">
-                  <span className="shrink-0 mt-0.5">{reason.status}</span>
-                  <span><strong>{reason.criterion}:</strong> {reason.detail}</span>
+                <div key={idx} className="text-xs text-gray-700">
+                  <span className="font-medium">{reason.criterion}:</span> {reason.detail}
                 </div>
               ))}
             </div>
