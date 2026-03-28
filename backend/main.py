@@ -14,6 +14,7 @@ import uuid
 
 from config.settings import settings
 from orchestrator import PipelineOrchestrator
+from services.database import db_service
 
 
 # ============= Pydantic Models =============
@@ -32,6 +33,8 @@ class UserProfile(BaseModel):
 class ChatRequest(BaseModel):
     query: str
     profile: Optional[UserProfile] = None
+    user_id: Optional[str] = None
+    session_id: Optional[str] = None
 
 
 class ProfileRequest(BaseModel):
@@ -81,6 +84,14 @@ async def startup_event():
     """Initialize vector store and agents on startup."""
     print("🚀 PolicyGPT Bharat starting up...")
     try:
+        # Initialize database
+        orchestrator.alert_agent.initialize_db(db_service)
+        if db_service.is_available:
+            print("✅ MongoDB: Connected and ready")
+        else:
+            print("⚠️ MongoDB: Not available, using in-memory storage")
+
+        # Initialize vector store and agents
         orchestrator.initialize()
         status = orchestrator.vector_store_status
         print(f"✅ Vector DB: {status['total_chunks']} chunks, {status['total_schemes']} schemes")
@@ -125,13 +136,33 @@ async def chat(request: ChatRequest):
     """
     Main chat endpoint.
     Pipeline: Query Agent → RAG Agent → Eligibility Agent → Compliance Agent → Action Agent → Response
+    Saves chat history to MongoDB if available.
     """
     try:
-        session_id = str(uuid.uuid4())
+        session_id = request.session_id or str(uuid.uuid4())
+        user_id = request.user_id or str(uuid.uuid4())
         profile_dict = request.profile.model_dump(exclude_none=True) if request.profile else {}
 
         # Run the full pipeline
         result = orchestrator.run_pipeline(request.query, profile_dict)
+
+        # Save to MongoDB if available
+        if db_service.is_available:
+            user_message = {
+                "role": "user",
+                "content": request.query,
+                "profile": profile_dict,
+            }
+            db_service.save_chat_message(user_id, session_id, user_message)
+
+            assistant_message = {
+                "role": "assistant",
+                "content": result["response_text"],
+                "intent": result["intent"],
+                "schemes_found": len(result["schemes"]),
+                "eligible_count": result["eligible_count"],
+            }
+            db_service.save_chat_message(user_id, session_id, assistant_message)
 
         return ChatResponse(
             text=result["response_text"],
@@ -275,6 +306,94 @@ async def whatsapp_webhook(message: Dict):
             "schemes_count": result["total_schemes"],
         }
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============= Chat History Endpoints =============
+
+
+@app.post("/chat/save-message")
+async def save_chat_message(data: Dict):
+    """Save individual chat message to database."""
+    try:
+        user_id = data.get("user_id", str(uuid.uuid4()))
+        session_id = data.get("session_id", str(uuid.uuid4()))
+        message = data.get("message", {})
+
+        if not db_service.is_available:
+            return {
+                "saved": False,
+                "message": "Database not available. Chat history stored locally only."
+            }
+
+        result = db_service.save_chat_message(user_id, session_id, message)
+
+        return {
+            **result,
+            "user_id": user_id,
+            "session_id": session_id,
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/chat/history/{user_id}")
+async def get_chat_history(
+    user_id: str,
+    session_id: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=100)
+):
+    """Retrieve chat history for a user or specific session."""
+    try:
+        messages = db_service.get_chat_history(user_id, session_id, limit)
+
+        return {
+            "user_id": user_id,
+            "session_id": session_id,
+            "messages": messages,
+            "count": len(messages),
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/chat/session")
+async def save_chat_session(data: Dict):
+    """Save complete chat session to database."""
+    try:
+        user_id = data.get("user_id", str(uuid.uuid4()))
+        session_id = data.get("session_id", str(uuid.uuid4()))
+        messages = data.get("messages", [])
+        metadata = data.get("metadata", {})
+
+        if not db_service.is_available:
+            return {
+                "saved": False,
+                "message": "Database not available."
+            }
+
+        result = db_service.save_full_session(
+            user_id,
+            session_id,
+            messages,
+            metadata
+        )
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/db/stats")
+async def get_database_stats():
+    """Get database statistics (admin endpoint)."""
+    try:
+        stats = db_service.get_database_stats()
+        return stats
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

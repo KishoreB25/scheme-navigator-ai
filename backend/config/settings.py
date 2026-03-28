@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     # Scoring thresholds
     min_relevance_score: float = 0.3
 
+    # MongoDB
+    mongodb_url: str = "mongodb://localhost:27017"
+    mongodb_db_name: str = "policygpt_bharat"
+    mongodb_timeout: int = 10000  # milliseconds
+
     class Config:
         env_file = (".env", "../.env")
         extra = "ignore"

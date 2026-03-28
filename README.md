@@ -1,6 +1,6 @@
 # scheme-navigator-ai
 
-### BHARAT POLICY COPILOT
+### BHARAT POLICY COPILOT - Economic Times GenAI Hackathon
 
 ```text
 policygpt-bharat/
@@ -136,6 +136,7 @@ Content-Type: application/json
 ```bash
 GET http://localhost:8000/missed?age=30&state=Maharashtra&occupation=farmer
 ```
+
 
 ---
 
