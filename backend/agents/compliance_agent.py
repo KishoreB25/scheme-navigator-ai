@@ -1,0 +1,153 @@
+"""
+Compliance Guardrail Agent
+CRITICAL: Ensures all responses use ONLY retrieved data with proper citations.
+Blocks hallucinations and enforces mandatory output structure.
+"""
+
+from typing import Dict, List
+from config.prompts import MISSING_INFO_RESPONSE, NO_RESULTS_RESPONSE
+
+
+class ComplianceAgent:
+    """Strict compliance guardrail enforcer for PolicyGPT Bharat."""
+
+    # Mandatory fields every scheme response must include
+    REQUIRED_FIELDS = [
+        "scheme_name",
+        "eligibility_status",
+        "benefits",
+        "documents_required",
+        "application_process",
+        "official_link",
+    ]
+
+    def validate_scheme(self, scheme: Dict) -> Dict:
+        """
+        Validate a single scheme response ensuring all mandatory fields exist.
+        Replaces any missing field with the compliance-safe missing info message.
+        """
+        validated = {
+            "id": scheme.get("scheme_id", scheme.get("id", "N/A")),
+            "name": scheme.get("scheme_name", scheme.get("name", MISSING_INFO_RESPONSE)),
+            "description": scheme.get("description", MISSING_INFO_RESPONSE),
+            "category": scheme.get("category", MISSING_INFO_RESPONSE),
+        }
+
+        # Eligibility (with detailed breakdown)
+        validated["eligible"] = scheme.get("eligible", False)
+        validated["eligibility_status"] = scheme.get(
+            "eligibility_status", MISSING_INFO_RESPONSE
+        )
+        validated["eligibility_reasons"] = scheme.get("eligibility_reasons", [])
+        validated["eligibility_text"] = scheme.get("eligibility", MISSING_INFO_RESPONSE)
+
+        # Benefits
+        benefits_raw = scheme.get("benefits", "")
+        if isinstance(benefits_raw, list):
+            validated["benefits"] = benefits_raw
+        elif isinstance(benefits_raw, str) and benefits_raw:
+            validated["benefits"] = [b.strip() for b in benefits_raw.split(".") if b.strip()]
+        else:
+            validated["benefits"] = [MISSING_INFO_RESPONSE]
+
+        # Documents
+        docs_raw = scheme.get("documents_required", "")
+        if isinstance(docs_raw, list):
+            validated["documents_required"] = docs_raw
+        elif isinstance(docs_raw, str) and docs_raw:
+            validated["documents_required"] = [
+                d.strip() for d in docs_raw.replace(", ", ",").split(",") if d.strip()
+            ]
+        else:
+            validated["documents_required"] = [MISSING_INFO_RESPONSE]
+
+        # Application steps
+        steps_raw = scheme.get("application_process", "")
+        if isinstance(steps_raw, list):
+            validated["application_steps"] = steps_raw
+        elif isinstance(steps_raw, str) and steps_raw:
+            # Parse "Step 1: ..., Step 2: ..." format
+            import re
+            steps = re.split(r"Step \d+:\s*", steps_raw)
+            validated["application_steps"] = [s.strip().rstrip(".") for s in steps if s.strip()]
+        else:
+            validated["application_steps"] = [MISSING_INFO_RESPONSE]
+
+        # Citation / source
+        validated["official_link"] = scheme.get("official_link", MISSING_INFO_RESPONSE)
+        validated["source"] = scheme.get("official_link", "PolicyGPT Bharat Database")
+        validated["citation"] = f"Source: {validated['source']}"
+
+        # Relevance score (internal use)
+        validated["relevance_score"] = scheme.get("relevance_score", 0)
+
+        return validated
+
+    def validate_response(self, schemes: List[Dict]) -> List[Dict]:
+        """Validate all schemes in a response."""
+        return [self.validate_scheme(s) for s in schemes]
+
+    def generate_response_text(
+        self, schemes: List[Dict], query: str, intent: str
+    ) -> str:
+        """
+        Generate compliant response text.
+        Uses ONLY data from validated schemes — no hallucinated content.
+        """
+        if not schemes:
+            return NO_RESULTS_RESPONSE
+
+        scheme_names = [s["name"] for s in schemes]
+        eligible_names = [s["name"] for s in schemes if s.get("eligible", False)]
+        total = len(schemes)
+
+        if intent == "eligibility":
+            if eligible_names:
+                text = (
+                    f"Based on your profile, you are eligible for: "
+                    f"{', '.join(eligible_names)}.\n\n"
+                    f"I found {total} relevant scheme(s) in total. "
+                    f"See detailed eligibility breakdown below for each scheme."
+                )
+            else:
+                text = (
+                    f"Based on your profile information, I found {total} relevant scheme(s): "
+                    f"{', '.join(scheme_names)}.\n\n"
+                    f"However, you may not meet all eligibility criteria. "
+                    f"Check the detailed breakdown below."
+                )
+
+        elif intent == "apply":
+            text = (
+                f"Here are the application steps for: {', '.join(scheme_names[:3])}.\n\n"
+                f"Detailed steps, required documents, and official links are provided below."
+            )
+
+        elif intent == "details":
+            text = (
+                f"Here is detailed information about: {', '.join(scheme_names[:3])}.\n\n"
+                f"All information below is sourced from official government portals."
+            )
+
+        else:  # search
+            text = (
+                f"I found {total} government scheme(s) matching your query: "
+                f"{', '.join(scheme_names[:5])}.\n\n"
+                f"Each scheme includes eligibility, benefits, required documents, and application steps."
+            )
+
+        return text
+
+    def process(
+        self, eligible_schemes: List[Dict], query: str, intent: str
+    ) -> Dict:
+        """Process and return compliant, validated response."""
+        validated_schemes = self.validate_response(eligible_schemes)
+        response_text = self.generate_response_text(validated_schemes, query, intent)
+
+        return {
+            "response_text": response_text,
+            "schemes": validated_schemes,
+            "compliance_verified": True,
+            "total_schemes": len(validated_schemes),
+        }

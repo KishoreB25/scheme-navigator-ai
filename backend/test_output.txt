@@ -1,0 +1,41 @@
+TEST 1 Health: 200 | Agents: 6 | Chunks: 25 | Schemes: 23
+TEST 2 Chat-Farmer: 200 | Intent: search | Eligible: 4/5 | Compliance: True
+  >> Kisan Credit Card (KCC) | eligible=True | Eligible ✅
+  >> Pradhan Mantri Kisan Samman Nidhi (PM-KISAN) | eligible=True | Eligible ✅
+  >> Pradhan Mantri Fasal Bima Yojana (PMFBY) | eligible=True | Eligible ✅
+  >> Stand-Up India Scheme | eligible=False | Not Eligible ❌
+  >> Pradhan Mantri Suraksha Bima Yojana (PMSBY) | eligible=True | Eligible ✅
+TEST 3 PMAY: 200 | Intent: eligibility | Eligible: 5/5
+  >> Pradhan Mantri Awas Yojana (PMAY) | eligible=True
+     ✅ Age: Your age (35) is within the eligible range (18-any)
+     ✅ Income: Your income (₹200,000) is within the limit of ₹300,000
+  >> National Scholarship Portal (NSP) Scholarships | eligible=True
+     ✅ Age: Your age (35) is within the eligible range (5-35)
+     ✅ Income: Your income (₹200,000) is within the limit of ₹800,000
+     ⚠️ Occupation: Occupation not provided. Required: student
+  >> Pradhan Mantri Ujjwala Yojana (PMUY) | eligible=True
+     ✅ Age: Your age (35) is within the eligible range (18-any)
+     ✅ Income: Your income (₹200,000) is within the limit of ₹200,000
+     ⚠️ Gender: Gender not provided. This scheme is for female applicants
+  >> Ayushman Bharat - Pradhan Mantri Jan Arogya Yojana (AB-PMJAY) | eligible=True
+     ✅ Age: Your age (35) is within the eligible range (any-any)
+     ✅ Income: Your income (₹200,000) is within the limit of ₹250,000
+  >> Pradhan Mantri Gram Sadak Yojana (PMGSY) | eligible=True
+     ⚠️ State: State not provided. This scheme applies to: Rural areas only
+TEST 4 Missed: 200 | Count: 11
+  >> Pradhan Mantri Kisan Samman Nidhi (PM-KISAN)
+  >> Pradhan Mantri Awas Yojana (PMAY)
+  >> Kisan Credit Card (KCC)
+  >> Pradhan Mantri Fasal Bima Yojana (PMFBY)
+  >> Pradhan Mantri Ujjwala Yojana (PMUY)
+  >> Ayushman Bharat - Pradhan Mantri Jan Arogya Yojana (AB-PMJAY)
+  >> Pradhan Mantri Jeevan Jyoti Bima Yojana (PMJJBY)
+  >> Pradhan Mantri Suraksha Bima Yojana (PMSBY)
+  >> Atal Pension Yojana (APY)
+  >> Pradhan Mantri Jan Dhan Yojana (PMJDY)
+  >> Pradhan Mantri Matru Vandana Yojana (PMMVY)
+TEST 5 All-Schemes: 200 | Total: 23
+TEST 6 Compliance: 200 | Found: 5 | Text: Here is detailed information about: Stand-Up India Scheme, Kisan Credit Card (KCC), Pradhan Mantri Suraksha Bima Yojana (PMSBY).
+
+All information belo
+TEST 7 WhatsApp: 200 | Has response: True
