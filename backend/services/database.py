@@ -45,7 +45,7 @@ class MongoDBService:
 
     def _create_indexes(self):
         """Create necessary indexes for performance"""
-        if not self._db:
+        if self._db is None:
             return
 
         try:
@@ -87,11 +87,18 @@ class MongoDBService:
                 "updated_at": datetime.utcnow(),
             }
 
+            # Log the profile being saved
+            print(f"[DB] Saving user profile: {user_id}")
+            print(f"[DB] Profile fields: {list(profile_doc.keys())}")
+            print(f"[DB] Username: {profile_doc.get('username', 'NOT SET')}")
+
             result = self._db.users.update_one(
                 {"user_id": user_id},
                 {"$set": profile_doc},
                 upsert=True
             )
+
+            print(f"[DB] Profile saved successfully. Matched: {result.matched_count}, Modified: {result.modified_count}, Upserted ID: {result.upserted_id}")
 
             return {
                 "user_id": user_id,
@@ -313,7 +320,7 @@ class MongoDBService:
 
     def close_connection(self):
         """Close MongoDB connection"""
-        if self._client:
+        if self._client is not None:
             self._client.close()
             print("[DB] MongoDB connection closed")
 

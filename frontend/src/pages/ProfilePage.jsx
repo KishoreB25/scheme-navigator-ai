@@ -4,6 +4,7 @@ import { User, MapPin, Briefcase, IndianRupee, Save, Calendar } from 'lucide-rea
 
 export default function ProfilePage() {
   const [formData, setFormData] = useState({
+    username: '',
     age: '',
     income: '',
     state: '',
@@ -46,6 +47,20 @@ export default function ProfilePage() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <User className="w-4 h-4 text-blue-600" /> Username
+              </label>
+              <input
+                type="text"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                className="w-full bg-gray-50 border border-gray-300 rounded-lg p-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition placeholder:text-gray-400"
+                placeholder="e.g. john_doe"
+              />
+            </div>
             
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center gap-2">

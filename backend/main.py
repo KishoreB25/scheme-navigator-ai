@@ -21,6 +21,7 @@ from services.database import db_service
 
 
 class UserProfile(BaseModel):
+    username: Optional[str] = None
     age: Optional[int] = None
     income: Optional[int] = None
     state: Optional[str] = None
@@ -185,16 +186,21 @@ async def update_profile(request: ProfileRequest):
         user_id = str(uuid.uuid4())
         profile_dict = request.profile.model_dump(exclude_none=True)
 
+        print(f"[API] Received profile request with fields: {list(profile_dict.keys())}")
+        print(f"[API] Username: {profile_dict.get('username', 'NOT PROVIDED')}")
+        print(f"[API] Full profile data: {profile_dict}")
+
         result = orchestrator.alert_agent.save_profile(user_id, profile_dict)
 
         return {
             "user_id": user_id,
-            "profile": result["profile"],
-            "saved": True,
+            "profile": result.get("profile", profile_dict),
+            "saved": result.get("saved", False),
             "message": "Profile saved successfully",
         }
 
     except Exception as e:
+        print(f"[API] Error updating profile: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -28,6 +28,18 @@ export default function ProfileForm() {
     <div className="bg-white rounded-lg p-6 space-y-5 border border-gray-200 shadow-sm">
       <h3 className="font-bold text-xl text-gray-800 pb-3 border-b border-gray-200 flex items-center"><span className="mr-2">👤</span>Your Profile</h3>
 
+      {/* Username */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">Username</label>
+        <input
+          type="text"
+          value={profile.username || ''}
+          onChange={(e) => handleInputChange('username', e.target.value)}
+          placeholder="e.g., john_doe"
+          className="w-full px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition font-sans"
+        />
+      </div>
+
       {/* Age */}
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-2">Age</label>
