@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { sendChat } from '../services/api';
+import { sendMessage } from '../services/api';
 
 const STORAGE_KEY = 'chat_history';
 const SCHEMA_VERSION = 1;
@@ -73,13 +73,16 @@ export const useChat = () => {
       addMessage(query, 'user');
 
       try {
-        const response = await sendChat(query, userProfile);
+        const response = await sendMessage(query, userProfile);
 
         // Add bot response
-        addMessage(response.response || 'No response received', 'assistant', {
+        addMessage(response.text || 'No response received', 'assistant', {
           schemes: response.schemes || [],
-          eligibility: response.eligibility || {},
-          metadata: response.metadata || {},
+          intent: response.intent,
+          session_id: response.session_id,
+          eligible_count: response.eligible_count,
+          total_schemes: response.total_schemes,
+          compliance_verified: response.compliance_verified,
         });
 
         return response;

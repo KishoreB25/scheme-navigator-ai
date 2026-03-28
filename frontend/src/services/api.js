@@ -101,3 +101,6 @@ export const getAllSchemes = async () => {
     throw new Error('Failed to fetch schemes.');
   }
 };
+
+// Export alias for backward compatibility
+export const saveProfile = updateProfile;

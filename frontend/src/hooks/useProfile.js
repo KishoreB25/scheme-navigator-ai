@@ -76,8 +76,8 @@ export const useProfile = () => {
     setError(null);
     try {
       const response = await saveProfile(profile);
-      if (response.userId) {
-        localStorage.setItem('userId', response.userId);
+      if (response.user_id) {
+        localStorage.setItem('userId', response.user_id);
       }
       return response;
     } catch (err) {
