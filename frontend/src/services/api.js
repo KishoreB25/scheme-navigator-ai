@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000'; // FastAPI backend
+// Use environment variable if available, fallback to localhost for development
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+
+console.log('API_BASE_URL:', API_BASE_URL); // Debug log
 
 // Configure axios with reasonable timeout
 const apiClient = axios.create({
