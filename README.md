@@ -1,6 +1,6 @@
 # scheme-navigator-ai
 
-### BHARAT POLICY COPILOT - Economic Times GenAI Hackathon
+### POLICYSETU - Economic Times GenAI Hackathon
 
 ```text
 policygpt-bharat/
