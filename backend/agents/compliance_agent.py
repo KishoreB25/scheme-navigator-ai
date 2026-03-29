@@ -93,13 +93,19 @@ class ComplianceAgent:
     ) -> str:
         """
         Generate compliant response text.
-        Returns a brief summary only - detailed scheme info shown in cards below.
         """
         if not schemes:
             return NO_RESULTS_RESPONSE
 
-        # Always use template (brief summary) instead of LLM for cleaner UI
-        # Cards will display all detailed information
+        # Try to use the LLM to generate a conversational response
+        if llm_service and hasattr(llm_service, 'generate_response'):
+            response = llm_service.generate_response(
+                query=query, schemes=schemes, intent=intent, profile=profile
+            )
+            if response:
+                return response
+
+        # Fallback template
         return self._template_response(schemes, intent)
 
     def _template_response(self, schemes: List[Dict], intent: str) -> str:
