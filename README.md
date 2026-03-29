@@ -324,10 +324,9 @@ npm install --force
 
 ## 📈 Performance
 
-- **API Response Time**: <2 seconds ✅
-- **Frontend Load**: <1 second ✅
-- **Chat Bot Latency**: <500ms ✅
-- **Memory Usage**: <500MB ✅
+- **API Response Time**: <2 seconds 
+- **Frontend Load**: <1 second 
+- **Memory Usage**: <500MB
 
 ---
 
