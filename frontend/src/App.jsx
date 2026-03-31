@@ -6,15 +6,15 @@ import AlertsPage from './pages/AlertsPage';
 
 function App() {
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-gray-50 selection:bg-blue-200 text-gray-800">
+    <div className="flex h-dvh w-screen overflow-hidden bg-background text-slate-100">
       {/* Background decorations */}
-      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-100 blur-[120px] pointer-events-none opacity-40"></div>
-      <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-50 blur-[120px] pointer-events-none opacity-40" style={{ animationDelay: '2s' }}></div>
-      <div className="fixed top-[40%] left-[60%] w-[30%] h-[30%] rounded-full bg-gray-100 blur-[120px] pointer-events-none opacity-30" style={{ animationDelay: '4s' }}></div>
+      <div className="fixed top-[-10%] left-[-10%] w-[45%] h-[45%] rounded-full bg-primary/10 blur-[140px] pointer-events-none animate-blob"></div>
+      <div className="fixed bottom-[-10%] right-[-10%] w-[45%] h-[45%] rounded-full bg-accent/10 blur-[140px] pointer-events-none animate-blob" style={{ animationDelay: '2.5s' }}></div>
+      <div className="fixed top-[30%] left-[55%] w-[35%] h-[35%] rounded-full bg-primary/5 blur-[120px] pointer-events-none animate-blob" style={{ animationDelay: '5s' }}></div>
 
       <Sidebar />
       
-      <main className="flex-1 h-full relative z-10 overflow-y-auto bg-gray-50">
+      <main className="flex-1 h-full relative z-10 overflow-y-auto bg-transparent">
         <Routes>
           <Route path="/" element={<Navigate to="/chat" replace />} />
           <Route path="/chat" element={<ChatPage />} />

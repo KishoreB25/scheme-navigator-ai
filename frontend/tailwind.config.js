@@ -7,20 +7,22 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#0F172A', // Slate 900
-        surface: '#1E293B', // Slate 800
-        primary: '#3B82F6', // Blue 500
-        secondary: '#10B981', // Emerald 500
-        accent: '#8B5CF6', // Violet 500
-        saffron: '#FF9500',
+        background: '#0B0F19', // Premium midnight dark slate
+        surface: '#161F30', // Card dark slate
+        'surface-hover': '#1F2B42', // Card hover state
+        primary: '#F59E0B', // Saffron Gold (brand color)
+        secondary: '#FBBF24', // Lighter Saffron Gold
+        accent: '#8B5CF6', // Royal tech purple
+        'bharat-saffron': '#FF9500',
         'bharat-green': '#138808',
         'bharat-blue': '#003DA5',
         eligible: '#10B981',
         ineligible: '#EF4444',
+        border: '#1E293B',
       },
       fontFamily: {
-        sans: ['Poppins', 'system-ui', 'sans-serif'],
-        display: ['Nunito', 'system-ui', 'sans-serif'],
+        sans: ['Lato', 'system-ui', 'sans-serif'],
+        display: ['"EB Garamond"', 'Georgia', 'serif'],
       },
       animation: {
         'pulse-dot': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
@@ -50,8 +52,9 @@ export default {
         }
       },
       boxShadow: {
-        'glass': '0 4px 30px rgba(0, 0, 0, 0.1)',
-        'glow': '0 0 15px rgba(59, 130, 246, 0.5)',
+        'glass': '0 4px 30px rgba(0, 0, 0, 0.2)',
+        'glow': '0 0 15px rgba(245, 158, 11, 0.25)',
+        'glow-purple': '0 0 15px rgba(139, 92, 246, 0.3)',
       }
     },
   },
