@@ -1,6 +1,6 @@
-# 🚀 PolicyGPT Bharat - QUICK START (30 Seconds)
+# PolicyGPT Bharat - QUICK START (30 Seconds)
 
-## ⚡ TL;DR - Run These 2 Commands
+## TL;DR - Run These 2 Commands
 
 ### Terminal 1: Start Backend
 ```bash
@@ -17,16 +17,16 @@ Go to: **http://localhost:5173**
 
 ---
 
-## ✅ What's Already Setup For You
+## What's Already Setup For You
 
-- ✅ **Backend:** All 6 agents working, 23 schemes indexed, Groq LLM active
-- ✅ **Frontend:** React components ready, API integration fixed
-- ✅ **Database:** FAISS vector DB with 25 chunks pre-indexed
-- ✅ **API Tests:** All 7 tests passing (100% success rate)
+- **Backend:** All 6 agents working, 23 schemes indexed, Groq LLM active
+- **Frontend:** React components ready, API integration fixed
+- **Database:** FAISS vector DB with 25 chunks pre-indexed
+- **API Tests:** All 7 tests passing (100% success rate)
 
 ---
 
-## 🎯 Try These Queries
+##  Try These Queries
 
 **As a 30-year-old farmer from Maharashtra with ₹2.5L income:**
 
@@ -37,22 +37,22 @@ Go to: **http://localhost:5173**
 
 ---
 
-## 📊 Live Backend Status
+##  Live Backend Status
 
 **Backend:** http://localhost:8000  
 **Health Check:** http://localhost:8000/docs (Swagger UI)
 
 ```
-✅ Groq LLM: llama-3.3-70b-versatile
-✅ Vector DB: 25 chunks from 23 schemes  
-✅ All Agents: Initialized (Query, RAG, Eligibility, Compliance, Action, Alert)
-✅ APIs: 6 endpoints ready
-✅ Tests: 7/7 passing
+Groq LLM: llama-3.3-70b-versatile
+Vector DB: 25 chunks from 23 schemes  
+All Agents: Initialized (Query, RAG, Eligibility, Compliance, Action, Alert)
+APIs: 6 endpoints ready
+Tests: 7/7 passing
 ```
 
 ---
 
-## 🎉 You're All Set!
+## You're All Set!
 
 The system is **fully integrated and tested**. Just run the two commands above and open the browser.
 
@@ -60,7 +60,7 @@ For detailed info: See `INTEGRATION_COMPLETE.md` or `INTEGRATION_TEST_GUIDE.md`
 
 ---
 
-## 🆘 Quick Fixes
+## Quick Fixes
 
 | Issue | Fix |
 |-------|-----|
@@ -71,5 +71,5 @@ For detailed info: See `INTEGRATION_COMPLETE.md` or `INTEGRATION_TEST_GUIDE.md`
 
 ---
 
-**Status:** 🟢 Production Ready  
+**Status:**  Production Ready  
 **Last Updated:** March 28, 2026
