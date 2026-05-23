@@ -8,11 +8,10 @@ export default function ChatBubble({ message }) {
   return (
     <div className={`flex w-full ${isAI ? 'justify-start' : 'justify-end'} animate-slide-up`}>
       <div
-        className={`flex max-w-[85%] md:max-w-[75%] gap-4 group p-4.5 rounded-2xl border ${
-          isAI
-            ? 'bg-surface/40 backdrop-blur-md text-slate-100 border-border/70 rounded-tl-sm shadow-md'
-            : 'bg-accent text-white border-accent/20 rounded-tr-sm shadow-glow-purple shadow-accent/10'
-        }`}
+        className={`flex max-w-[85%] md:max-w-[75%] gap-2 group p-2 rounded-2xl border ${isAI
+          ? 'bg-surface/40 backdrop-blur-md text-slate-100 border-border/70 rounded-tl-sm shadow-md'
+          : 'bg-accent text-white border-accent/20 rounded-tr-sm shadow-glow-purple shadow-accent/10'
+          }`}
       >
         {isAI && (
           <div className="shrink-0 w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center font-display font-bold text-primary shadow-glow select-none">
