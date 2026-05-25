@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,30 +7,30 @@
 @layer base {
   :root {
     color-scheme: dark;
-    /* Define some dynamic variables if needed */
   }
 
   body {
-    @apply bg-background text-slate-200 antialiased selection:bg-primary selection:text-white font-sans overflow-x-hidden;
-    background-image: radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08), transparent 25%),
-                      radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.08), transparent 25%);
+    @apply bg-background text-slate-100 antialiased selection:bg-primary selection:text-slate-950 font-sans overflow-x-hidden;
+    background-image: radial-gradient(circle at 5% 15%, rgba(245, 158, 11, 0.05), transparent 35%),
+                      radial-gradient(circle at 95% 85%, rgba(139, 92, 246, 0.07), transparent 35%),
+                      radial-gradient(circle at 50% 50%, rgba(11, 15, 25, 0.3), transparent 100%);
     background-attachment: fixed;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display tracking-tight text-white;
+    @apply font-display tracking-wide text-white;
   }
 }
 
 @layer utilities {
   .glass {
-    @apply bg-surface/60 backdrop-blur-xl border border-slate-700/50 shadow-glass;
+    @apply bg-surface/40 backdrop-blur-xl border border-border/60 shadow-glass;
   }
   .glass-card {
-    @apply bg-slate-800/40 backdrop-blur-md border border-slate-700/50 shadow-lg rounded-2xl;
+    @apply bg-surface/50 backdrop-blur-md border border-border/40 shadow-lg rounded-2xl;
   }
   .glass-panel {
-    @apply bg-slate-900/60 backdrop-blur-2xl border-l border-slate-700/50;
+    @apply bg-surface/70 backdrop-blur-2xl border-l border-border/80;
   }
   
   /* Custom Scrollbar */
@@ -42,9 +42,9 @@
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-slate-700 rounded-full;
+    @apply bg-slate-800 rounded-full;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-600;
+    @apply bg-slate-700;
   }
 }
