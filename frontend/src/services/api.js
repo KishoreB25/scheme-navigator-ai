@@ -1,14 +1,17 @@
 import axios from 'axios';
 
 // Use environment variable if available, fallback to localhost for development
-export const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+export const API_BASE_URL =
+  import.meta.env.VITE_BACKEND_URL ||
+  import.meta.env.VITE_API_URL ||
+  'http://localhost:8000';
 
 console.log('API_BASE_URL:', API_BASE_URL); // Debug log
 
 // Configure axios with reasonable timeout
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000, // increased for FAISS + embedding queries
+  timeout: 30000, // increased for ChromaDB + embedding queries
 });
 
 // Transform backend response to frontend format
