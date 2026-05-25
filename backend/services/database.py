@@ -64,7 +64,8 @@ class MongoDBService:
 
             # User profiles collection - use firebaseUid as unique key
             self._db.users.create_index("firebaseUid", unique=True)
-            self._db.users.create_index("createdAt", expireAfterSeconds=7776000)  # 90 days TTL
+            # TTL index for guest users only - 90 days
+            self._db.users.create_index("createdAt", expireAfterSeconds=7776000, partialFilterExpression={"isGuest": True})
 
             # Chat history collection
             self._db.chat_history.create_index([("firebaseUid", ASCENDING), ("session_id", ASCENDING)])
@@ -72,8 +73,8 @@ class MongoDBService:
             self._db.chat_history.create_index("firebaseUid")
             self._db.chat_history.create_index([("createdAt", DESCENDING)])
 
-            # Missed schemes tracking
-            self._db.missed_schemes.create_index([("user_id", ASCENDING), ("scheme_id", ASCENDING)])
+            # Missed schemes tracking - use firebaseUid for consistency
+            self._db.missed_schemes.create_index([("firebaseUid", ASCENDING), ("scheme_id", ASCENDING)])
 
             print("[DB] Indexes created successfully")
         except Exception as e:
@@ -250,7 +251,7 @@ class MongoDBService:
 
         try:
             detection_doc = {
-                "user_id": user_id,
+                "firebaseUid": user_id,
                 "profile": profile,
                 "missed_schemes_count": len(missed_schemes),
                 "scheme_ids": [s.get("id", s.get("scheme_id")) for s in missed_schemes],
@@ -280,7 +281,7 @@ class MongoDBService:
         try:
             history = list(
                 self._db.missed_schemes
-                .find({"user_id": user_id})
+                .find({"firebaseUid": user_id})
                 .sort("created_at", DESCENDING)
                 .limit(limit)
             )
@@ -478,11 +479,24 @@ class MongoDBService:
                     "updatedAt": datetime.utcnow(),
                 }
                 
-                self._db.users.update_one(
+                # Update authenticated user with guest profile
+                result = self._db.users.update_one(
                     {"firebaseUid": auth_firebase_uid},
                     {"$set": merge_doc}
                 )
-
+                
+                # Only proceed if update succeeded
+                if result.matched_count == 0:
+                    print(f"[DB] Failed to merge: authenticated user not found: {auth_firebase_uid}")
+                    return {"merged": False, "error": "Authenticated user update failed"}
+            
+            # Migrate any guest data (e.g., chat history, alerts) to authenticated user
+            # Update all documents in other collections that reference guest_firebase_uid
+            self._db.chat_history.update_many(
+                {"firebaseUid": guest_firebase_uid},
+                {"$set": {"firebaseUid": auth_firebase_uid}}
+            )
+            
             # Delete guest account
             self._db.users.delete_one({"firebaseUid": guest_firebase_uid})
             print(f"[DB] Guest merged: {guest_firebase_uid} → {auth_firebase_uid}")

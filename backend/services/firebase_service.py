@@ -44,7 +44,13 @@ class FirebaseService:
                     # Try to load from JSON string in environment
                     creds_json = settings.firebase_credentials_json
                     if creds_json:
-                        cred = credentials.Certificate(json.loads(creds_json))
+                        try:
+                            creds_dict = json.loads(creds_json)
+                            cred = credentials.Certificate(creds_dict)
+                        except json.JSONDecodeError as e:
+                            print(f"[Firebase] Failed to parse FIREBASE_CREDENTIALS_JSON: {e}")
+                            self._initialized = True
+                            return
                     else:
                         print("[Firebase] No credentials found. Set FIREBASE_CREDENTIALS_PATH or FIREBASE_CREDENTIALS_JSON in .env")
                         self._initialized = True

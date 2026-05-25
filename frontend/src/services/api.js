@@ -66,11 +66,6 @@ export const updateProfile = async (firebaseUid, profileData) => {
       )
     );
 
-    // Ensure gender always has a value if not provided
-    if (!cleanedProfile.gender && profileData.gender !== false && profileData.gender !== 0) {
-      cleanedProfile.gender = 'Male'; // Default fallback
-    }
-
     const payload = {
       firebase_uid: firebaseUid,
       profile: cleanedProfile || {},

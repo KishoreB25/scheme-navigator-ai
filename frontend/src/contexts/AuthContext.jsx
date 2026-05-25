@@ -57,7 +57,6 @@ export function AuthProvider({ children }) {
             profile: data.user.profile,
             isNewUser: data.isNewUser,
             isGuest: false,
-            idToken: idToken,
           });
 
           // Clear guest UID from localStorage
@@ -84,7 +83,6 @@ export function AuthProvider({ children }) {
 
   const loginWithGoogle = async () => {
     try {
-      setIsLoading(true);
       setError(null);
       
       const provider = new GoogleAuthProvider();
@@ -96,8 +94,6 @@ export function AuthProvider({ children }) {
       console.error('Login error:', err);
       setError(err.message);
       throw err;
-    } finally {
-      setIsLoading(false);
     }
   };
 

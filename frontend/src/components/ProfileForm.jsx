@@ -30,7 +30,7 @@ export default function ProfileForm() {
 
       {/* Full Name */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name *</label>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
         <input
           type="text"
           value={profile.name || ''}

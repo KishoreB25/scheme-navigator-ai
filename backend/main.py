@@ -201,9 +201,14 @@ async def google_auth(request: FirebaseAuthRequest):
         if not verified_token:
             raise HTTPException(status_code=401, detail="Invalid or expired token")
 
-        uid = verified_token['uid']
-        email = verified_token['email']
-        name = verified_token.get('name', email.split('@')[0])
+        # Validate required claims
+        uid = verified_token.get('uid')
+        email = verified_token.get('email')
+        if not uid or not email:
+            raise HTTPException(status_code=400, detail="Missing required token claims: uid and email required")
+        
+        # Derive name safely - prefer Firebase name claim, fallback to uid
+        name = verified_token.get('name') or uid
         picture = verified_token.get('picture')
 
         # If user was previously a guest, merge data
