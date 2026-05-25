@@ -235,7 +235,7 @@ export default function ChatPage() {
                 <Database size={12} className="text-primary" /> RAG Knowledge Base
               </span>
               <span className="text-[10px] bg-eligible/10 border border-eligible/20 text-eligible font-semibold px-2 py-0.5 rounded">
-                Synced (FAISS)
+                Synced (ChromaDB)
               </span>
             </div>
 
@@ -256,7 +256,7 @@ export default function ChatPage() {
             <Info size={12} className="text-primary" /> Search Guidelines
           </p>
           <p className="text-[10px] text-slate-400 leading-relaxed font-sans">
-            PolicySetu uses hybrid FAISS semantic embeddings + structured filters to check eligibility in real-time. Ask questions using natural citizen phrasing.
+            PolicySetu uses hybrid ChromaDB semantic embeddings + structured filters to check eligibility in real-time. Ask questions using natural citizen phrasing.
           </p>
         </div>
 
