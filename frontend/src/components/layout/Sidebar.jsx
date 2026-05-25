@@ -1,7 +1,10 @@
 import { NavLink } from 'react-router-dom';
-import { MessageSquare, User, Bell, Phone } from 'lucide-react';
+import { MessageSquare, User, Bell, Phone, LogOut } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function Sidebar() {
+  const { user, logout } = useAuth();
+
   const navItems = [
     { name: 'Chat Assistant', path: '/chat', icon: MessageSquare },
     { name: 'User Profile', path: '/profile', icon: User },
@@ -19,6 +22,25 @@ export default function Sidebar() {
           Policy<span className="text-primary font-medium">Setu</span>
         </h1>
       </div>
+
+      {/* User Profile Section */}
+      {user && (
+        <div className="p-4 border-b border-border/80 bg-surface/20">
+          <div className="flex items-center gap-3">
+            {user.picture ? (
+              <img src={user.picture} alt={user.name} className="w-10 h-10 rounded-full border border-primary/30" />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold border border-primary/30">
+                {user.name?.charAt(0) || '?'}
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white truncate">{user.name}</p>
+              <p className="text-xs text-slate-400 truncate">{user.email}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 p-4 flex flex-col gap-2 relative">
@@ -43,10 +65,21 @@ export default function Sidebar() {
         <div className="my-4 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent"></div>
 
         {/* WhatsApp Demo Integration Button */}
-        <button className="mt-auto flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all border border-transparent hover:border-emerald-500/20 group">
+        <button className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all border border-transparent hover:border-emerald-500/20 group">
           <Phone className="w-5 h-5 shrink-0 group-hover:animate-pulse" />
           <span className="font-medium text-sm tracking-wide">WhatsApp Demo</span>
         </button>
+
+        {/* Logout Button - shown only when user is logged in */}
+        {user && (
+          <button
+            onClick={logout}
+            className="mt-auto flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20"
+          >
+            <LogOut className="w-5 h-5 shrink-0" />
+            <span className="font-medium text-sm tracking-wide">Logout</span>
+          </button>
+        )}
       </nav>
       
       {/* Footer */}

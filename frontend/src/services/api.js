@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Use environment variable if available, fallback to localhost for development
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+export const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
 console.log('API_BASE_URL:', API_BASE_URL); // Debug log
 
@@ -57,16 +57,29 @@ export const sendMessage = async (text, profile) => {
   }
 };
 
-export const updateProfile = async (profileData) => {
+export const updateProfile = async (firebaseUid, profileData) => {
   try {
+    // Filter out empty fields - especially important for gender
+    const cleanedProfile = Object.fromEntries(
+      Object.entries(profileData).filter(
+        ([_, value]) => value !== '' && value !== null && value !== undefined
+      )
+    );
+
+    // Ensure gender always has a value if not provided
+    if (!cleanedProfile.gender && profileData.gender !== false && profileData.gender !== 0) {
+      cleanedProfile.gender = 'Male'; // Default fallback
+    }
+
     const payload = {
-      profile: profileData || {},
+      firebase_uid: firebaseUid,
+      profile: cleanedProfile || {},
     };
 
     const response = await apiClient.post('/profile', payload);
 
     return {
-      user_id: response.data.user_id,
+      firebase_uid: response.data.firebase_uid,
       profile: response.data.profile,
       saved: response.data.saved,
       message: response.data.message,

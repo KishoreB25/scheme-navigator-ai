@@ -6,7 +6,7 @@ export default function ProfilePage() {
   const { profile, updateField, save, isLoading } = useProfile();
   
   const [formData, setFormData] = useState({
-    username: '',
+    name: '',
     age: '',
     income: '',
     state: '',
@@ -21,7 +21,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (profile) {
       setFormData({
-        username: profile.username || '',
+        name: profile.name || '',
         age: profile.age !== null ? profile.age.toString() : '',
         income: profile.income !== null ? profile.income.toString() : '',
         state: profile.state || '',
@@ -36,7 +36,7 @@ export default function ProfilePage() {
     setSaving(true);
     
     // Explicit sync to double-ensure values are updated in the hook state before saving
-    updateField('username', formData.username);
+    updateField('name', formData.name);
     updateField('age', formData.age ? parseInt(formData.age, 10) : null);
     updateField('income', formData.income ? parseInt(formData.income, 10) : null);
     updateField('state', formData.state);
@@ -86,19 +86,20 @@ export default function ProfilePage() {
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            {/* Username */}
+            {/* Full Name */}
             <div className="space-y-2">
               <label className="text-xs font-semibold tracking-wider text-slate-400 uppercase flex items-center gap-2">
-                <User className="w-3.5 h-3.5 text-primary" /> Username / Full Name
+                <User className="w-3.5 h-3.5 text-primary" /> Full Name *
               </label>
               <input
                 type="text"
-                name="username"
-                value={formData.username}
+                name="name"
+                value={formData.name}
                 onChange={handleChange}
                 className="w-full bg-slate-950/40 border border-border rounded-xl p-3.5 text-slate-100 placeholder-slate-650 focus:outline-none focus:ring-2 focus:ring-primary/45 focus:border-transparent transition-all duration-300 font-sans"
                 placeholder="e.g. John Doe"
               />
+              <p className="text-xs text-slate-500">Pre-filled from your Google account. Edit if needed.</p>
             </div>
             
             {/* Age */}
