@@ -4,11 +4,14 @@ import ChatBubble from '../components/chat/ChatBubble';
 import ChatInput from '../components/chat/ChatInput';
 import useChat from '../hooks/useChat';
 import useProfile from '../hooks/useProfile';
-import { Sparkles, Trash2, ShieldCheck, Database, Sliders, ArrowRight, Info, IndianRupee, MapPin, Briefcase, Calendar } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import GoogleLoginButton from '../components/GoogleLoginButton';
+import { Sparkles, Trash2, ShieldCheck, Database, Sliders, ArrowRight, Info, IndianRupee, MapPin, Briefcase, Calendar, LogOut } from 'lucide-react';
 
 export default function ChatPage() {
   const { messages, isLoading, sendQuery, clearHistory } = useChat();
   const { profile, isComplete } = useProfile();
+  const { user, logout } = useAuth();
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -29,7 +32,8 @@ export default function ChatPage() {
     content: `Namaste! 🙏 I am PolicySetu AI, your personal Government Scheme & Citizen Services Advisor.\n\nTo find the most suitable schemes for you, please fill out your profile in the **User Profile** section so I can instantly check your eligibility.\n\nHow can I help you today? (e.g., "What schemes are available for a farmer in Gujarat?")`,
   };
 
-  const hasProfileData = profile.age || profile.state || profile.occupation || profile.income;
+  // Only show profile data if user is logged in
+  const hasProfileData = user && (profile.age || profile.state || profile.occupation || profile.income);
 
   return (
     <div className="h-full w-full p-6 bg-transparent flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto overflow-hidden">
@@ -116,6 +120,44 @@ export default function ChatPage() {
             <Sliders className="w-4 h-4 text-primary" /> Active Search Filters
           </h3>
 
+          {user && (
+            <div className="bg-slate-950/40 border border-border/60 rounded-xl p-4 space-y-3 mb-3">
+              <div className="flex items-center gap-3">
+                {user.picture ? (
+                  <img 
+                    src={user.picture} 
+                    alt={user.name} 
+                    className="w-10 h-10 rounded-full object-cover border border-primary/30"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      if (e.target.nextElementSibling) {
+                        e.target.nextElementSibling.style.display = 'flex';
+                      }
+                    }}
+                  />
+                ) : null}
+                <div 
+                  className={`w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${
+                    user.picture ? 'hidden' : ''
+                  }`}
+                  style={user.picture ? { display: 'none' } : { display: 'flex' }}
+                >
+                  {user.name?.charAt(0).toUpperCase() || '?'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-white truncate">{user.name}</p>
+                  <p className="text-[10px] text-slate-400 truncate">{user.email}</p>
+                </div>
+              </div>
+              <button
+                onClick={logout}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-red-500/10 text-slate-300 hover:text-red-400 text-[10px] font-bold rounded-lg transition border border-slate-700 hover:border-red-500/30 cursor-pointer"
+              >
+                <LogOut size={12} /> Logout
+              </button>
+            </div>
+          )}
+
           {hasProfileData ? (
             <div className="bg-slate-950/40 border border-border/60 rounded-xl p-4.5 space-y-3 shadow-inner">
               <p className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
@@ -157,12 +199,26 @@ export default function ChatPage() {
               <p className="text-xs text-slate-400 leading-relaxed font-sans">
                 No search profile filters are active. AI eligibility evaluation is limited.
               </p>
-              <Link
-                to="/profile"
-                className="inline-flex items-center justify-center gap-1 w-full px-3 py-2 bg-primary hover:bg-secondary text-slate-950 text-[10px] font-bold rounded-lg transition active:scale-95 cursor-pointer shadow-glow shadow-primary/10"
-              >
-                Create Profile <ArrowRight size={12} />
-              </Link>
+              
+              {!user ? (
+                <>
+                  <GoogleLoginButton />
+                  <p className="text-[10px] text-slate-500">or</p>
+                  <Link
+                    to="/profile"
+                    className="inline-flex items-center justify-center gap-1 w-full px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold rounded-lg transition active:scale-95 cursor-pointer border border-slate-600"
+                  >
+                    Create Profile <ArrowRight size={12} />
+                  </Link>
+                </>
+              ) : (
+                <Link
+                  to="/profile"
+                  className="inline-flex items-center justify-center gap-1 w-full px-3 py-2 bg-primary hover:bg-secondary text-slate-950 text-[10px] font-bold rounded-lg transition active:scale-95 cursor-pointer shadow-glow shadow-primary/10"
+                >
+                  Update Profile <ArrowRight size={12} />
+                </Link>
+              )}
             </div>
           )}
         </div>

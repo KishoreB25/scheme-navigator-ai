@@ -49,18 +49,32 @@ class MongoDBService:
             return
 
         try:
-            # User profiles collection
-            self._db.users.create_index("user_id", unique=True)
-            self._db.users.create_index("created_at", expireAfterSeconds=7776000)  # 90 days TTL
+            # Drop old TTL index with conflicting options if it exists
+            try:
+                self._db.users.drop_index("createdAt_1")
+                print("[DB] Dropped old createdAt index")
+            except:
+                pass  # Index doesn't exist, that's fine
+
+            try:
+                self._db.chat_history.drop_index("createdAt_1")
+                print("[DB] Dropped old chat_history createdAt index")
+            except:
+                pass  # Index doesn't exist, that's fine
+
+            # User profiles collection - use firebaseUid as unique key
+            self._db.users.create_index("firebaseUid", unique=True)
+            # TTL index for guest users only - 90 days
+            self._db.users.create_index("createdAt", expireAfterSeconds=7776000, partialFilterExpression={"isGuest": True})
 
             # Chat history collection
-            self._db.chat_history.create_index([("user_id", ASCENDING), ("session_id", ASCENDING)])
-            self._db.chat_history.create_index("created_at", expireAfterSeconds=2592000)  # 30 days TTL
-            self._db.chat_history.create_index("user_id")
-            self._db.chat_history.create_index([("created_at", DESCENDING)])
+            self._db.chat_history.create_index([("firebaseUid", ASCENDING), ("session_id", ASCENDING)])
+            self._db.chat_history.create_index("createdAt", expireAfterSeconds=2592000)  # 30 days TTL
+            self._db.chat_history.create_index("firebaseUid")
+            self._db.chat_history.create_index([("createdAt", DESCENDING)])
 
-            # Missed schemes tracking
-            self._db.missed_schemes.create_index([("user_id", ASCENDING), ("scheme_id", ASCENDING)])
+            # Missed schemes tracking - use firebaseUid for consistency
+            self._db.missed_schemes.create_index([("firebaseUid", ASCENDING), ("scheme_id", ASCENDING)])
 
             print("[DB] Indexes created successfully")
         except Exception as e:
@@ -237,7 +251,7 @@ class MongoDBService:
 
         try:
             detection_doc = {
-                "user_id": user_id,
+                "firebaseUid": user_id,
                 "profile": profile,
                 "missed_schemes_count": len(missed_schemes),
                 "scheme_ids": [s.get("id", s.get("scheme_id")) for s in missed_schemes],
@@ -267,7 +281,7 @@ class MongoDBService:
         try:
             history = list(
                 self._db.missed_schemes
-                .find({"user_id": user_id})
+                .find({"firebaseUid": user_id})
                 .sort("created_at", DESCENDING)
                 .limit(limit)
             )
@@ -318,11 +332,182 @@ class MongoDBService:
             print(f"[DB] Error deleting old data: {e}")
             return {"deleted": 0}
 
+    # ============= FIREBASE AUTHENTICATION =============
+
+    def get_user_by_firebase_uid(self, firebase_uid: str) -> Optional[Dict]:
+        """Get user by Firebase UID"""
+        if not self.is_available:
+            return None
+
+        try:
+            user = self._db.users.find_one({"firebaseUid": firebase_uid})
+            if user:
+                user.pop("_id", None)
+            return user
+        except Exception as e:
+            print(f"[DB] Error getting user by Firebase UID: {e}")
+            return None
+
+    def create_user(self, firebase_uid: str, user_data: Dict, is_guest: bool = False) -> Dict:
+        """Create new user in MongoDB
+        
+        Args:
+            firebase_uid: Firebase UID (can be 'guest_' prefix for guests)
+            user_data: User data including email, name, picture
+            is_guest: Whether this is a guest user (no Firebase account yet)
+        """
+        if not self.is_available:
+            print("[DB] MongoDB not available, user not created")
+            return {"created": False}
+
+        try:
+            user_doc = {
+                "firebaseUid": firebase_uid,
+                "email": user_data.get("email"),
+                "name": user_data.get("name"),
+                "picture": user_data.get("picture"),
+                "isGuest": is_guest,
+                "profileCompleted": False,
+                "profile": None,
+                "createdAt": datetime.utcnow(),
+                "updatedAt": datetime.utcnow(),
+            }
+
+            result = self._db.users.insert_one(user_doc)
+            print(f"[DB] User created: {firebase_uid}, isGuest: {is_guest}")
+
+            return {
+                "user_id": str(result.inserted_id),
+                "firebase_uid": firebase_uid,
+                "created": True,
+                "is_guest": is_guest
+            }
+        except Exception as e:
+            print(f"[DB] Error creating user: {e}")
+            return {"created": False}
+
+    def update_user_profile(self, firebase_uid: str, profile_data: Dict) -> Dict:
+        """Update user profile and mark as completed
+        
+        Stores eligibility criteria in profile object.
+        Top-level name field is updated separately if edited.
+        """
+        if not self.is_available:
+            print("[DB] MongoDB not available, profile not updated")
+            return {"updated": False}
+
+        try:
+            print(f"[DB] Updating profile for: {firebase_uid}")
+            print(f"[DB] Received profile_data: {profile_data}")
+            
+            # Prepare profile data (eligibility criteria only)
+            # Remove 'name' from profile_data as it should be at top level
+            profile_filtered = {k: v for k, v in profile_data.items() if k != 'name' and v != ''}
+            
+            print(f"[DB] After filtering: {profile_filtered}")
+            
+            # Update includes top-level name if provided
+            update_doc = {
+                "profile": profile_filtered,
+                "profileCompleted": True,
+                "updatedAt": datetime.utcnow(),
+            }
+            
+            # If name is in the profile_data, update top-level name field too
+            if 'name' in profile_data and profile_data['name']:
+                update_doc['name'] = profile_data['name']
+
+            print(f"[DB] Update doc: {update_doc}")
+            
+            result = self._db.users.update_one(
+                {"firebaseUid": firebase_uid},
+                {"$set": update_doc},
+                upsert=False
+            )
+
+            if result.matched_count == 0:
+                print(f"[DB] User not found: {firebase_uid}")
+                return {"updated": False, "error": "User not found"}
+
+            print(f"[DB] User profile updated: {firebase_uid}, matched: {result.matched_count}, modified: {result.modified_count}")
+            return {
+                "updated": True,
+                "matched": result.matched_count,
+                "modified": result.modified_count
+            }
+        except Exception as e:
+            print(f"[DB] Error updating user profile: {e}")
+            return {"updated": False, "error": str(e)}
+
     def close_connection(self):
         """Close MongoDB connection"""
         if self._client is not None:
             self._client.close()
             print("[DB] MongoDB connection closed")
+
+    # ============= GUEST USER HANDLING =============
+
+    def merge_guest_to_authenticated(self, guest_firebase_uid: str, auth_firebase_uid: str) -> Dict:
+        """Merge guest user data to authenticated user account
+        
+        When a guest user logs in with Google:
+        1. Retrieve guest profile data
+        2. Delete guest account
+        3. Update authenticated account with guest's profile data
+        """
+        if not self.is_available:
+            return {"merged": False}
+
+        try:
+            # Get guest user data
+            guest_user = self._db.users.find_one({"firebaseUid": guest_firebase_uid})
+            if not guest_user:
+                print(f"[DB] Guest user not found: {guest_firebase_uid}")
+                return {"merged": False, "error": "Guest user not found"}
+
+            # Get authenticated user
+            auth_user = self._db.users.find_one({"firebaseUid": auth_firebase_uid})
+            if not auth_user:
+                print(f"[DB] Authenticated user not found: {auth_firebase_uid}")
+                return {"merged": False, "error": "Authenticated user not found"}
+
+            # Merge guest profile into authenticated user (if guest has profile completed)
+            if guest_user.get("profileCompleted") and guest_user.get("profile"):
+                merge_doc = {
+                    "profile": guest_user["profile"],
+                    "profileCompleted": True,
+                    "updatedAt": datetime.utcnow(),
+                }
+                
+                # Update authenticated user with guest profile
+                result = self._db.users.update_one(
+                    {"firebaseUid": auth_firebase_uid},
+                    {"$set": merge_doc}
+                )
+                
+                # Only proceed if update succeeded
+                if result.matched_count == 0:
+                    print(f"[DB] Failed to merge: authenticated user not found: {auth_firebase_uid}")
+                    return {"merged": False, "error": "Authenticated user update failed"}
+            
+            # Migrate any guest data (e.g., chat history, alerts) to authenticated user
+            # Update all documents in other collections that reference guest_firebase_uid
+            self._db.chat_history.update_many(
+                {"firebaseUid": guest_firebase_uid},
+                {"$set": {"firebaseUid": auth_firebase_uid}}
+            )
+            
+            # Delete guest account
+            self._db.users.delete_one({"firebaseUid": guest_firebase_uid})
+            print(f"[DB] Guest merged: {guest_firebase_uid} → {auth_firebase_uid}")
+
+            return {
+                "merged": True,
+                "guest_had_profile": guest_user.get("profileCompleted", False)
+            }
+        except Exception as e:
+            print(f"[DB] Error merging guest user: {e}")
+            return {"merged": False, "error": str(e)}
 
 
 # Global instance
