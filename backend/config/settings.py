@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     # HuggingFace
     hf_token: Optional[str] = None
 
+    # Firebase
+    firebase_credentials_path: Optional[str] = None
+    firebase_credentials_json: Optional[str] = None
+
     # MongoDB
     mongodb_url: str = "mongodb://localhost:27017"
     mongodb_db_name: str = "policygpt_bharat"
