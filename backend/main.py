@@ -15,13 +15,13 @@ import uuid
 from config.settings import settings
 from orchestrator import PipelineOrchestrator
 from services.database import db_service
+from services.firebase_service import FirebaseService
 
 
 # ============= Pydantic Models =============
 
 
 class UserProfile(BaseModel):
-    username: Optional[str] = None
     age: Optional[int] = None
     income: Optional[int] = None
     state: Optional[str] = None
@@ -29,6 +29,7 @@ class UserProfile(BaseModel):
     gender: Optional[str] = None
     education: Optional[str] = None
     caste: Optional[str] = None
+    # Note: name is stored at top level, not in profile
 
 
 class ChatRequest(BaseModel):
@@ -42,6 +43,17 @@ class ProfileRequest(BaseModel):
     profile: UserProfile
 
 
+class ProfileUpdateRequest(BaseModel):
+    firebase_uid: str
+    profile: UserProfile
+
+
+class GuestProfileRequest(BaseModel):
+    """Create temporary guest profile without authentication"""
+    name: str
+    profile: UserProfile
+
+
 class ChatResponse(BaseModel):
     text: str
     schemes: List[Dict]
@@ -50,6 +62,31 @@ class ChatResponse(BaseModel):
     eligible_count: int
     total_schemes: int
     compliance_verified: bool
+
+
+# ============= Firebase Auth Models =============
+
+
+class FirebaseAuthRequest(BaseModel):
+    token: str  # Firebase ID token from client
+    guest_firebase_uid: Optional[str] = None  # If user was guest, provide the guest UID for merge
+
+
+class UserData(BaseModel):
+    uid: str
+    email: str
+    name: Optional[str] = None
+    email_verified: Optional[bool] = False
+    picture: Optional[str] = None
+    profileCompleted: Optional[bool] = False
+    profile: Optional[Dict] = None
+    isGuest: Optional[bool] = False
+
+
+class AuthResponse(BaseModel):
+    user: UserData
+    message: str
+    isNewUser: bool
 
 
 # ============= FastAPI App =============
@@ -75,6 +112,9 @@ app.add_middleware(
 
 # ============= Orchestrator =============
 orchestrator = PipelineOrchestrator()
+
+# ============= Firebase Service =============
+firebase_service = FirebaseService()
 
 
 # ============= Startup Event =============
@@ -141,6 +181,142 @@ async def root():
     }
 
 
+@app.post("/auth/google", response_model=AuthResponse)
+async def google_auth(request: FirebaseAuthRequest):
+    """
+    Google Authentication endpoint.
+    Verifies Firebase ID token, creates/retrieves user from MongoDB.
+    Handles merging guest data if provided.
+    
+    Flow:
+    1. Verify Firebase token
+    2. Extract uid, email, name from token
+    3. If guest_firebase_uid provided, merge guest data
+    4. Query MongoDB for existing user or create new
+    5. Return user data with profileCompleted status
+    """
+    try:
+        # Verify Firebase token
+        verified_token = firebase_service.verify_token(request.token)
+        if not verified_token:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+        uid = verified_token['uid']
+        email = verified_token['email']
+        name = verified_token.get('name', email.split('@')[0])
+        picture = verified_token.get('picture')
+
+        # If user was previously a guest, merge data
+        if request.guest_firebase_uid and db_service.is_available:
+            merge_result = db_service.merge_guest_to_authenticated(
+                request.guest_firebase_uid,
+                uid
+            )
+            if merge_result.get("merged"):
+                print(f"[Auth] Guest data merged: {request.guest_firebase_uid} → {uid}")
+
+        # Query MongoDB for existing user
+        existing_user = None
+        if db_service.is_available:
+            existing_user = db_service.get_user_by_firebase_uid(uid)
+
+        if existing_user:
+            # Existing user - return their data
+            return AuthResponse(
+                user=UserData(
+                    uid=uid,
+                    email=email,
+                    name=existing_user.get('name', name),  # Use stored name if available
+                    email_verified=verified_token.get('email_verified', False),
+                    picture=existing_user.get('picture', picture),
+                    profileCompleted=existing_user.get('profileCompleted', False),
+                    profile=existing_user.get('profile'),
+                    isGuest=False,
+                ),
+                message="User authenticated successfully",
+                isNewUser=False,
+            )
+        else:
+            # New user - create profile in MongoDB
+            if db_service.is_available:
+                new_user = {
+                    'email': email,
+                    'name': name,
+                    'picture': picture,
+                }
+                db_service.create_user(uid, new_user, is_guest=False)
+
+            return AuthResponse(
+                user=UserData(
+                    uid=uid,
+                    email=email,
+                    name=name,
+                    email_verified=verified_token.get('email_verified', False),
+                    picture=picture,
+                    profileCompleted=False,
+                    profile=None,
+                    isGuest=False,
+                ),
+                message="New user created successfully",
+                isNewUser=True,
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Auth] Authentication error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/auth/guest")
+async def create_guest_profile(request: GuestProfileRequest):
+    """
+    Create a temporary guest profile without authentication.
+    Guest can use the app and create profiles.
+    Later, when they sign in with Google, guest data is merged.
+    
+    Returns guest_firebase_uid to store on client side.
+    """
+    try:
+        import uuid
+        
+        # Generate temporary guest UID
+        guest_uid = f"guest_{uuid.uuid4().hex[:12]}"
+        
+        profile_dict = request.profile.model_dump(exclude_none=True)
+        
+        if db_service.is_available:
+            guest_user = {
+                'email': None,  # No email for guests
+                'name': request.name,
+                'picture': None,
+            }
+            
+            result = db_service.create_user(guest_uid, guest_user, is_guest=True)
+            
+            # If profile data provided, save it immediately
+            if profile_dict:
+                db_service.update_user_profile(guest_uid, {**profile_dict, 'name': request.name})
+            
+            return {
+                "guest_firebase_uid": guest_uid,
+                "name": request.name,
+                "profileCompleted": bool(profile_dict),
+                "message": "Guest profile created successfully",
+            }
+        else:
+            return {
+                "guest_firebase_uid": guest_uid,
+                "name": request.name,
+                "profileCompleted": False,
+                "message": "Database not available, guest profile created locally",
+            }
+
+    except Exception as e:
+        print(f"[Auth] Guest creation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """
@@ -189,24 +365,34 @@ async def chat(request: ChatRequest):
 
 
 @app.post("/profile")
-async def update_profile(request: ProfileRequest):
-    """Save/update user profile for personalized recommendations."""
+async def update_profile(request: ProfileUpdateRequest):
+    """
+    Save/update user profile for personalized recommendations.
+    Requires Firebase UID to associate profile with authenticated user.
+    """
     try:
-        user_id = str(uuid.uuid4())
+        firebase_uid = request.firebase_uid
         profile_dict = request.profile.model_dump(exclude_none=True)
 
-        print(f"[API] Received profile request with fields: {list(profile_dict.keys())}")
-        print(f"[API] Username: {profile_dict.get('username', 'NOT PROVIDED')}")
-        print(f"[API] Full profile data: {profile_dict}")
+        print(f"[API] Updating profile for user: {firebase_uid}")
+        print(f"[API] Profile fields: {list(profile_dict.keys())}")
 
-        result = orchestrator.alert_agent.save_profile(user_id, profile_dict)
-
-        return {
-            "user_id": user_id,
-            "profile": result.get("profile", profile_dict),
-            "saved": result.get("saved", False),
-            "message": "Profile saved successfully",
-        }
+        # Update profile in MongoDB
+        if db_service.is_available:
+            result = db_service.update_user_profile(firebase_uid, profile_dict)
+            return {
+                "firebase_uid": firebase_uid,
+                "profile": profile_dict,
+                "saved": result.get("updated", False),
+                "message": "Profile saved successfully" if result.get("updated") else "Failed to save profile",
+            }
+        else:
+            return {
+                "firebase_uid": firebase_uid,
+                "profile": profile_dict,
+                "saved": False,
+                "message": "Database not available",
+            }
 
     except Exception as e:
         print(f"[API] Error updating profile: {e}")
