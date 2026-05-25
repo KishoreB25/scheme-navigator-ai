@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import {
   signInWithPopup,
+  signInWithRedirect,
   GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
@@ -16,6 +17,7 @@ const GUEST_UID_KEY = 'guest_firebase_uid';
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSigningIn, setIsSigningIn] = useState(false);
   const [error, setError] = useState(null);
 
   // Monitor Firebase auth state
@@ -82,18 +84,42 @@ export function AuthProvider({ children }) {
   }, []);
 
   const loginWithGoogle = async () => {
+    if (isSigningIn) {
+      return null;
+    }
+
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+
     try {
+      setIsSigningIn(true);
+      setIsLoading(true);
       setError(null);
       
-      const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       
       // Firebase automatically triggers onAuthStateChanged
       return result.user;
     } catch (err) {
       console.error('Login error:', err);
+
+      // This usually means another popup request is already in progress
+      if (err.code === 'auth/cancelled-popup-request') {
+        setError('Sign-in is already in progress. Please complete the opened Google window.');
+        return null;
+      }
+
+      // Browser blocked popup; fallback to redirect flow
+      if (err.code === 'auth/popup-blocked') {
+        await signInWithRedirect(auth, provider);
+        return null;
+      }
+
       setError(err.message);
       throw err;
+    } finally {
+      setIsSigningIn(false);
+      setIsLoading(false);
     }
   };
 
