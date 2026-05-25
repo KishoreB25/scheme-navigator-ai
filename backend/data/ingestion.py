@@ -1,14 +1,17 @@
 """
 Data Ingestion Pipeline for PolicyGPT Bharat
-Handles: JSON loading → Text chunking → Embedding → FAISS vector store
+Handles: JSON loading → Text chunking → Embedding → ChromaDB vector store
+
+[Migration Note] Replaced FAISS with ChromaDB for persistent vector storage.
+ChromaDB provides built-in persistence, metadata filtering, and collection management
+without requiring manual index save/load or pickle-based metadata serialization.
 """
 
 import json
 import os
-import re
-import pickle
+import hashlib
 import numpy as np
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Optional
 
 
 class TextChunker:
@@ -130,122 +133,226 @@ class EmbeddingEngine:
         return self.model.get_sentence_embedding_dimension()
 
 
-class FAISSStore:
-    """FAISS vector store for scheme chunks."""
+# =============================================================================
+# [Migration] ChromaVectorStore replaces FAISSStore
+# Key differences:
+#   - Uses chromadb.PersistentClient for automatic disk persistence (no manual save/load)
+#   - Collection-based organization with metadata filtering support
+#   - Deterministic document IDs prevent duplicates on re-ingestion
+#   - Built-in distance metrics (cosine similarity via normalized embeddings)
+# =============================================================================
 
-    def __init__(self, index_path: str = None):
-        self.index_path = index_path or os.path.join(
-            os.path.dirname(__file__), "faiss_index"
+
+class ChromaVectorStore:
+    """ChromaDB-backed persistent vector store for scheme chunks.
+    
+    Replaces FAISSStore with identical external API:
+    - add_documents() replaces build_index()
+    - search() returns same [{text, metadata, score}] format
+    - total_chunks property works identically
+    - Persistence is automatic (no save/load methods needed)
+    """
+
+    def __init__(self, persist_dir: str = None, collection_name: str = "bharat_policies"):
+        """Initialize ChromaDB persistent client and collection.
+        
+        Args:
+            persist_dir: Directory for ChromaDB persistent storage.
+                         Defaults to 'data/chroma_db' relative to this file.
+            collection_name: Name of the ChromaDB collection.
+        """
+        import chromadb
+
+        self.persist_dir = persist_dir or os.path.join(
+            os.path.dirname(__file__), "chroma_db"
         )
-        self.index = None
-        self.chunks_metadata: List[Dict] = []
-        self.chunks_text: List[str] = []
+        self.collection_name = collection_name
 
-    def build_index(self, embeddings: np.ndarray, chunks: List[Dict]):
-        """Build FAISS index from embeddings and chunk metadata."""
-        try:
-            import faiss
-        except ImportError:
-            raise ImportError(
-                "faiss-cpu is required. Install with: pip install faiss-cpu"
+        # Create persistent client — data survives restarts automatically
+        os.makedirs(self.persist_dir, exist_ok=True)
+        self._client = chromadb.PersistentClient(path=self.persist_dir)
+
+        # Get or create the collection
+        # Using cosine distance since our embeddings are L2-normalized
+        self._collection = self._client.get_or_create_collection(
+            name=self.collection_name,
+            metadata={"hnsw:space": "cosine"}
+        )
+
+    def _generate_doc_id(self, scheme_id: str, chunk_index: int) -> str:
+        """Generate a deterministic document ID to prevent duplicates.
+        
+        Using scheme_id + chunk_index ensures that re-ingesting the same
+        data doesn't create duplicate entries in the collection.
+        """
+        raw = f"{scheme_id}_chunk_{chunk_index}"
+        return hashlib.md5(raw.encode()).hexdigest()
+
+    def add_documents(self, embeddings: np.ndarray, chunks: List[Dict]):
+        """Add document chunks with embeddings and metadata to the collection.
+        
+        Args:
+            embeddings: numpy array of shape (n_chunks, embedding_dim)
+            chunks: list of dicts with 'text' and 'metadata' keys
+        
+        [Migration Note] Replaces FAISSStore.build_index(). ChromaDB handles
+        indexing internally — no need to manually build FAISS IndexFlatIP.
+        """
+        if len(chunks) == 0:
+            print("[ChromaDB] No chunks to add")
+            return
+
+        ids = []
+        documents = []
+        metadatas = []
+        embedding_list = embeddings.tolist()
+
+        for i, chunk in enumerate(chunks):
+            metadata = chunk["metadata"]
+            doc_id = self._generate_doc_id(
+                metadata.get("scheme_id", f"unknown_{i}"),
+                metadata.get("chunk_index", i)
+            )
+            ids.append(doc_id)
+            documents.append(chunk["text"])
+
+            # ChromaDB metadata values must be str, int, float, or bool
+            # Convert all metadata values to compatible types
+            clean_metadata = {}
+            for key, value in metadata.items():
+                if value is None:
+                    clean_metadata[key] = ""
+                elif isinstance(value, (str, int, float, bool)):
+                    clean_metadata[key] = value
+                else:
+                    clean_metadata[key] = str(value)
+            metadatas.append(clean_metadata)
+
+        # Upsert to handle re-ingestion gracefully (idempotent)
+        # Process in batches to avoid memory issues with large datasets
+        batch_size = 500
+        for start in range(0, len(ids), batch_size):
+            end = min(start + batch_size, len(ids))
+            self._collection.upsert(
+                ids=ids[start:end],
+                embeddings=embedding_list[start:end],
+                documents=documents[start:end],
+                metadatas=metadatas[start:end],
             )
 
-        dimension = embeddings.shape[1]
-        # Use Inner Product index (since embeddings are normalized, this = cosine similarity)
-        self.index = faiss.IndexFlatIP(dimension)
-        self.index.add(embeddings)
+        print(f"[ChromaDB] Upserted {len(ids)} documents into '{self.collection_name}'")
 
-        self.chunks_text = [c["text"] for c in chunks]
-        self.chunks_metadata = [c["metadata"] for c in chunks]
-
-    def save(self):
-        """Save FAISS index and metadata to disk."""
-        try:
-            import faiss
-        except ImportError:
-            raise ImportError("faiss-cpu is required.")
-
-        os.makedirs(self.index_path, exist_ok=True)
-
-        faiss.write_index(self.index, os.path.join(self.index_path, "index.faiss"))
-
-        with open(os.path.join(self.index_path, "metadata.pkl"), "wb") as f:
-            pickle.dump(
-                {
-                    "chunks_text": self.chunks_text,
-                    "chunks_metadata": self.chunks_metadata,
-                },
-                f,
-            )
-
-    def load(self) -> bool:
-        """Load FAISS index from disk. Returns True if successful."""
-        try:
-            import faiss
-        except ImportError:
-            return False
-
-        index_file = os.path.join(self.index_path, "index.faiss")
-        meta_file = os.path.join(self.index_path, "metadata.pkl")
-
-        if not os.path.exists(index_file) or not os.path.exists(meta_file):
-            return False
-
-        self.index = faiss.read_index(index_file)
-
-        with open(meta_file, "rb") as f:
-            data = pickle.load(f)
-            self.chunks_text = data["chunks_text"]
-            self.chunks_metadata = data["chunks_metadata"]
-
-        return True
-
-    def search(self, query_embedding: np.ndarray, top_k: int = 5) -> List[Dict]:
-        """Search for similar chunks."""
-        if self.index is None:
+    def search(
+        self,
+        query_embedding: np.ndarray,
+        top_k: int = 5,
+        where: Optional[Dict] = None,
+    ) -> List[Dict]:
+        """Search for similar chunks using cosine similarity.
+        
+        Args:
+            query_embedding: numpy array of shape (1, embedding_dim)
+            top_k: number of results to return
+            where: optional metadata filter dict, e.g. {"state": "Tamil Nadu"}
+        
+        Returns:
+            List of dicts with 'text', 'metadata', and 'score' keys.
+            Score is cosine similarity (higher = more similar).
+        
+        [Migration Note] Replaces FAISSStore.search(). Return format is
+        identical so RAG agent requires no changes to result handling.
+        """
+        if self._collection.count() == 0:
             return []
 
-        scores, indices = self.index.search(query_embedding, top_k)
-        results = []
+        # Clamp top_k to available documents
+        available = self._collection.count()
+        effective_k = min(top_k, available)
 
-        for score, idx in zip(scores[0], indices[0]):
-            if idx < 0 or idx >= len(self.chunks_text):
-                continue
-            results.append({
-                "text": self.chunks_text[idx],
-                "metadata": self.chunks_metadata[idx],
-                "score": float(score),
-            })
+        query_params = {
+            "query_embeddings": query_embedding.tolist(),
+            "n_results": effective_k,
+            "include": ["documents", "metadatas", "distances"],
+        }
 
-        return results
+        if where:
+            query_params["where"] = where
+
+        results = self._collection.query(**query_params)
+
+        # Convert ChromaDB results to the same format as old FAISSStore
+        search_results = []
+        if results and results["documents"] and results["documents"][0]:
+            for doc, metadata, distance in zip(
+                results["documents"][0],
+                results["metadatas"][0],
+                results["distances"][0],
+            ):
+                # ChromaDB returns cosine distance; convert to similarity score
+                # cosine_similarity = 1 - cosine_distance
+                similarity_score = 1.0 - distance
+
+                search_results.append({
+                    "text": doc,
+                    "metadata": metadata,
+                    "score": float(similarity_score),
+                })
+
+        return search_results
+
+    def delete_collection(self):
+        """Delete the entire collection. Useful for re-indexing from scratch."""
+        import chromadb
+
+        self._client.delete_collection(self.collection_name)
+        # Recreate empty collection
+        self._collection = self._client.get_or_create_collection(
+            name=self.collection_name,
+            metadata={"hnsw:space": "cosine"}
+        )
+        print(f"[ChromaDB] Collection '{self.collection_name}' deleted and recreated")
 
     @property
     def total_chunks(self) -> int:
         """Return total number of indexed chunks."""
-        return self.index.ntotal if self.index else 0
+        return self._collection.count()
+
+    @property
+    def has_data(self) -> bool:
+        """Check if the collection has any documents indexed."""
+        return self._collection.count() > 0
 
 
 class SchemeIngester:
     """
     Complete ingestion pipeline:
-    JSON schemes → Chunk → Embed → FAISS index
+    JSON schemes → Chunk → Embed → ChromaDB collection
+
+    [Migration Note] Replaced FAISS index building with ChromaDB upsert.
+    The pipeline flow is identical: load → chunk → embed → store.
+    ChromaDB handles persistence automatically — no manual save step.
     """
 
     def __init__(
         self,
         data_path: str = None,
-        index_path: str = None,
+        persist_dir: str = None,
+        collection_name: str = "bharat_policies",
         embedding_model: str = "all-MiniLM-L6-v2",
         chunk_size: int = 400,
         chunk_overlap: int = 50,
     ):
         data_dir = os.path.dirname(__file__)
         self.data_path = data_path or os.path.join(data_dir, "schemes_data.json")
-        self.index_path = index_path or os.path.join(data_dir, "faiss_index")
+        # [Migration] Changed from faiss_index dir to chroma_db dir
+        self.persist_dir = persist_dir or os.path.join(data_dir, "chroma_db")
 
         self.chunker = TextChunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
         self.embedding_engine = EmbeddingEngine(model_name=embedding_model)
-        self.vector_store = FAISSStore(index_path=self.index_path)
+        self.vector_store = ChromaVectorStore(
+            persist_dir=self.persist_dir,
+            collection_name=collection_name,
+        )
 
         self.schemes_raw: List[Dict] = []
 
@@ -257,8 +364,13 @@ class SchemeIngester:
 
     def build_index(self) -> int:
         """
-        Full pipeline: load → chunk → embed → index → save.
+        Full pipeline: load → chunk → embed → store in ChromaDB.
         Returns the number of chunks indexed.
+
+        [Migration Note] Replaces FAISS index building. Key differences:
+        - Uses ChromaVectorStore.add_documents() instead of FAISSStore.build_index()
+        - No manual save() call needed — ChromaDB auto-persists
+        - Upsert semantics prevent duplicate entries on re-run
         """
         # Load
         schemes = self.load_schemes()
@@ -277,13 +389,9 @@ class SchemeIngester:
         embeddings = self.embedding_engine.embed_texts(texts)
         print(f"[Ingestion] Embeddings shape: {embeddings.shape}")
 
-        # Build FAISS index
-        self.vector_store.build_index(embeddings, all_chunks)
-        print(f"[Ingestion] FAISS index built with {self.vector_store.total_chunks} vectors")
-
-        # Save
-        self.vector_store.save()
-        print(f"[Ingestion] Index saved to {self.index_path}")
+        # Store in ChromaDB (replaces FAISS index build + save)
+        self.vector_store.add_documents(embeddings, all_chunks)
+        print(f"[Ingestion] ChromaDB collection populated with {self.vector_store.total_chunks} vectors")
 
         return len(all_chunks)
 
