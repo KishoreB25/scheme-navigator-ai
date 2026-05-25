@@ -85,6 +85,15 @@ async def startup_event():
     """Initialize vector store and agents on startup."""
     print("🚀 PolicyGPT Bharat starting up...")
     try:
+        # Initialize HuggingFace authentication if token is available
+        if settings.hf_token:
+            try:
+                from huggingface_hub import login
+                login(token=settings.hf_token)
+                print("✅ HuggingFace authenticated")
+            except Exception as e:
+                print(f"⚠️ HuggingFace authentication warning: {e}")
+        
         # Initialize database
         orchestrator.alert_agent.initialize_db(db_service)
         if db_service.is_available:

@@ -24,20 +24,8 @@ class Settings(BaseSettings):
     groq_api_key: Optional[str] = None
     groq_model: str = "llama-3.3-70b-versatile"
 
-    # Embeddings
-    embedding_model: str = "all-MiniLM-L6-v2"
-
-    # Vector DB
-    vector_db_path: str = ""  # Defaults to data/faiss_index
-    data_path: str = ""  # Defaults to data/schemes_data.json
-
-    # RAG
-    top_k: int = 5
-    chunk_size: int = 400
-    chunk_overlap: int = 50
-
-    # Scoring thresholds
-    min_relevance_score: float = 0.3
+    # HuggingFace
+    hf_token: Optional[str] = None
 
     # MongoDB
     mongodb_url: str = "mongodb://localhost:27017"

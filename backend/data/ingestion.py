@@ -98,6 +98,14 @@ class EmbeddingEngine:
         if self._model is None:
             try:
                 from sentence_transformers import SentenceTransformer
+                from huggingface_hub import login
+                from config.settings import settings
+                
+                # Authenticate with HuggingFace if token is available
+                if settings.hf_token:
+                    login(token=settings.hf_token)
+                    print("[Embeddings] HuggingFace authenticated ✅")
+                
                 self._model = SentenceTransformer(self.model_name)
             except ImportError:
                 raise ImportError(

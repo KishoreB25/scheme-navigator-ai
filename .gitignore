@@ -60,3 +60,9 @@ yarn-error.log*
 # Project specific
 backend/test_output.txt
 backend/test_results.txt
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
