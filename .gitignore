@@ -61,7 +61,6 @@ yarn-error.log*
 backend/test_output.txt
 backend/test_results.txt
 backend/data/chroma_db/
-backend/data/faiss_index/
 
 # Python cache files
 __pycache__/
@@ -69,4 +68,8 @@ __pycache__/
 *$py.class
 *.pyc
 
+#Firebase
 backend/firebase
+
+#Data
+schemes_data.json
