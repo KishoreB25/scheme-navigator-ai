@@ -34,11 +34,13 @@ const transformSchemeResponse = (backendSchemes) => {
   }));
 };
 
-export const sendMessage = async (text, profile) => {
+export const sendMessage = async (text, profile, userId = null, sessionId = null) => {
   try {
     const payload = {
       query: text,
       profile: profile || {},
+      user_id: userId,
+      session_id: sessionId,
     };
 
     const response = await apiClient.post('/chat', payload);
@@ -57,6 +59,32 @@ export const sendMessage = async (text, profile) => {
     throw new Error(
       error.response?.data?.detail || 'Failed to fetch schemes. Please check if the backend is running.'
     );
+  }
+};
+
+export const getChatHistory = async (userId, sessionId = null, limit = 100) => {
+  if (!userId) {
+    return { user_id: null, session_id: null, messages: [], count: 0 };
+  }
+
+  try {
+    const params = new URLSearchParams();
+    if (sessionId) {
+      params.set('session_id', sessionId);
+    }
+    params.set('limit', String(limit));
+
+    const response = await apiClient.get(`/chat/history/${userId}?${params.toString()}`);
+
+    return {
+      user_id: response.data.user_id,
+      session_id: response.data.session_id,
+      messages: response.data.messages || [],
+      count: response.data.count || 0,
+    };
+  } catch (error) {
+    console.error('Chat History Error:', error.message);
+    throw new Error('Failed to load chat history.');
   }
 };
 
