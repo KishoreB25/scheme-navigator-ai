@@ -71,7 +71,7 @@ class FirebaseService:
                             self._initialized = True
                             return
                     else:
-                        print("[Firebase] No credentials found. Set FIREBASE_CREDENTIALS_PATH or FIREBASE_CREDENTIALS_JSON in .env")
+                        print("[Firebase] No credentials found. Set FIREBASE_CREDENTIALS_PATH or FIREBASE_CREDENTIALS_JSON in backend/.env")
                         self._initialized = True
                         return
 
