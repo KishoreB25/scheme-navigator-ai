@@ -8,6 +8,7 @@ from firebase_admin import credentials, auth
 from config.settings import settings
 import os
 import json
+from pathlib import Path
 from typing import Dict, Optional
 from datetime import datetime
 
@@ -38,8 +39,26 @@ class FirebaseService:
             else:
                 # Try to load credentials from file
                 creds_path = settings.firebase_credentials_path
-                if creds_path and os.path.exists(creds_path):
-                    cred = credentials.Certificate(creds_path)
+                resolved_creds_path = None
+
+                if creds_path:
+                    raw_path = Path(creds_path)
+                    backend_dir = Path(__file__).resolve().parents[1]
+                    project_root = backend_dir.parent
+
+                    candidate_paths = [
+                        raw_path,
+                        backend_dir / raw_path,
+                        project_root / raw_path,
+                    ]
+
+                    for candidate in candidate_paths:
+                        if candidate.exists():
+                            resolved_creds_path = candidate
+                            break
+
+                if resolved_creds_path:
+                    cred = credentials.Certificate(str(resolved_creds_path))
                 else:
                     # Try to load from JSON string in environment
                     creds_json = settings.firebase_credentials_json
@@ -52,7 +71,7 @@ class FirebaseService:
                             self._initialized = True
                             return
                     else:
-                        print("[Firebase] No credentials found. Set FIREBASE_CREDENTIALS_PATH or FIREBASE_CREDENTIALS_JSON in .env")
+                        print("[Firebase] No credentials found. Set FIREBASE_CREDENTIALS_PATH or FIREBASE_CREDENTIALS_JSON in backend/.env")
                         self._initialized = True
                         return
 

@@ -149,6 +149,8 @@ class PipelineOrchestrator:
     def vector_store_status(self) -> Dict:
         """Get vector store health status."""
         self.initialize()
+        # [Migration] ChromaVectorStore uses .total_chunks property (same as FAISS)
+        # No need to check .index attribute — ChromaDB is always ready after init
         return {
             "total_chunks": self.rag_agent._vector_store.total_chunks if self.rag_agent._vector_store else 0,
             "total_schemes": len(self.rag_agent.schemes_db),

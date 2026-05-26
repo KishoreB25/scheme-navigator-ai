@@ -6,7 +6,6 @@
 policygpt-bharat/
 ├── README.md
 ├── requirements.txt
-├── .env
 │
 ├── backend/
 │   ├── main.py                    # FastAPI server
@@ -191,7 +190,7 @@ python test_api.py
 - Python 3.8+
 - Pydantic - Data validation
 - Groq SDK - LLM Generation (Llama-3.3-70b)
-- FAISS & Sentence Transformers - Local Vector DB and Embeddings
+- ChromaDB & Sentence Transformers - Local Vector DB and Embeddings
 
 **Frontend**:
 - React 19.2
@@ -214,7 +213,7 @@ python test_api.py
 4. Polish voice input UI
 
 ### Medium Priority (2-3 hours)
-1. Integrate FAISS/Chroma for semantic search
+1. Expand ChromaDB-backed semantic search
 2. Add real LLM (GPT-3.5 or open source)
 3. Expand to 50+ government schemes
 4. Add regional language support
@@ -229,14 +228,21 @@ python test_api.py
 
 ## 📝 Environment Setup
 
-### Backend (.env)
+### Backend (`backend/.env`)
 ```
-API_TITLE=PolicyGPT Bharat
-API_VERSION=1.0.0
-CORS_ORIGINS=["*"]
+HF_TOKEN=
+GROQ_API_KEY=
+MONGODB_URL=mongodb://localhost:27017
+MONGODB_DB_NAME=policygpt_bharat
+DEBUG=true
+BACKEND_URL=http://localhost:8000
+CORS_ORIGINS=["http://localhost:5173","http://localhost:3000","*"]
+CHROMA_PERSIST_DIR=data/chroma_db
+CHROMA_COLLECTION_NAME=bharat_policies
+FIREBASE_CREDENTIALS_PATH=firebase/your-firebase-service-account.json
 ```
 
-### Frontend (.env)
+### Frontend (`frontend/.env` or `frontend/.env.local`)
 ```
 VITE_API_URL=http://localhost:8000
 ```
@@ -252,13 +258,13 @@ VITE_API_URL=http://localhost:8000
              ↓ (HTTP POST /chat, /profile)
        FastAPI Backend
              ↓
-     Pipeline Orchestrator
+      Pipeline Orchestrator
              ↓
     ┌─────────┴─────────┐
     ↓                   ↓
-  Agents            Database (FAISS + JSON)
+  Agents            Database (ChromaDB + JSON)
   1. Query          23 Government Schemes
-  2. RAG (FAISS)    User Profiles (In-memory)
+    2. RAG (ChromaDB)  User Profiles (MongoDB)
   3. Eligibility    
   4. Compliance
   5. LLM Service (Groq Llama-3.3)
@@ -269,7 +275,7 @@ VITE_API_URL=http://localhost:8000
 ### 🧠 Pipeline Deep Dive
 
 1. **Query Agent**: Extracts intent and profile entities (age, occupation, state, income) from the user's natural language question.
-2. **RAG Agent (Retrieval)**: Uses a hybrid approach—FAISS vector semantic search via `sentence-transformers` + intelligent keyword matching to retrieve the most relevant schemes without hallucination.
+2. **RAG Agent (Retrieval)**: Uses a hybrid approach—ChromaDB vector semantic search via `sentence-transformers` + intelligent keyword matching to retrieve the most relevant schemes without hallucination.
 3. **Eligibility Agent**: A strict rule engine that checks the user's profile against the official scheme criteria, providing a detailed ✅/❌/⚠️ breakdown.
 4. **Compliance Agent**: Enforces strict guardrails. Ensures responses only use retrieved data and always contain mandatory fields (benefits, documents, official links).
 5. **LLM Generation Service (Generation)**: Uses the fast Groq API (`llama-3.3-70b-versatile`) to translate the strict, validated data into a warm, helpful, and natural language response.

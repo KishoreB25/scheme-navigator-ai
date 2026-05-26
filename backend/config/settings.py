@@ -1,5 +1,11 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
+from pathlib import Path
+
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+BACKEND_ENV = BACKEND_DIR / ".env"
+ENV_FILE = str(BACKEND_ENV) if BACKEND_ENV.exists() else None
 
 
 class Settings(BaseSettings):
@@ -31,13 +37,18 @@ class Settings(BaseSettings):
     firebase_credentials_path: Optional[str] = None
     firebase_credentials_json: Optional[str] = None
 
+    # ChromaDB (migration from FAISS)
+    chroma_persist_dir: str = "data/chroma_db"
+    chroma_collection_name: str = "bharat_policies"
+
     # MongoDB
     mongodb_url: str = "mongodb://localhost:27017"
     mongodb_db_name: str = "policygpt_bharat"
     mongodb_timeout: int = 10000  # milliseconds
 
     class Config:
-        env_file = (".env", "../.env")
+        env_file = ENV_FILE
+        env_file_encoding = "utf-8"
         extra = "ignore"
 
 

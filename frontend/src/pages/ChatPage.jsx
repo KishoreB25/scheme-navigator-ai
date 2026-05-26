@@ -9,7 +9,7 @@ import GoogleLoginButton from '../components/GoogleLoginButton';
 import { Sparkles, Trash2, ShieldCheck, Database, Sliders, ArrowRight, Info, IndianRupee, MapPin, Briefcase, Calendar, LogOut } from 'lucide-react';
 
 export default function ChatPage() {
-  const { messages, isLoading, sendQuery, clearHistory } = useChat();
+  const { messages, isLoading, error, sendQuery, clearHistory } = useChat();
   const { profile, isComplete } = useProfile();
   const { user, logout } = useAuth();
   const messagesEndRef = useRef(null);
@@ -107,6 +107,11 @@ export default function ChatPage() {
 
         {/* Input Bar */}
         <div className="p-6 border-t border-border/80 bg-surface/20 rounded-b-2xl z-20 backdrop-blur-md">
+          {error && (
+            <div className="mb-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-300">
+              {error}
+            </div>
+          )}
           <ChatInput onSend={handleSend} disabled={isLoading} />
         </div>
       </div>
@@ -235,7 +240,7 @@ export default function ChatPage() {
                 <Database size={12} className="text-primary" /> RAG Knowledge Base
               </span>
               <span className="text-[10px] bg-eligible/10 border border-eligible/20 text-eligible font-semibold px-2 py-0.5 rounded">
-                Synced (FAISS)
+                Synced (ChromaDB)
               </span>
             </div>
 
@@ -256,7 +261,7 @@ export default function ChatPage() {
             <Info size={12} className="text-primary" /> Search Guidelines
           </p>
           <p className="text-[10px] text-slate-400 leading-relaxed font-sans">
-            PolicySetu uses hybrid FAISS semantic embeddings + structured filters to check eligibility in real-time. Ask questions using natural citizen phrasing.
+            PolicySetu uses hybrid ChromaDB semantic embeddings + structured filters to check eligibility in real-time. Ask questions using natural citizen phrasing.
           </p>
         </div>
 

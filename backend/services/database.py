@@ -4,7 +4,7 @@ Handles connection, user profiles, and chat history persistence
 """
 
 from pymongo import MongoClient, ASCENDING, DESCENDING
-from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError, OperationFailure
 from datetime import datetime
 from typing import Dict, List, Optional
 import json
@@ -38,7 +38,7 @@ class MongoDBService:
             self._create_indexes()
             self._initialized = True
             print(f"[DB] MongoDB connected: {settings.mongodb_url}")
-        except (ConnectionFailure, ServerSelectionTimeoutError) as e:
+        except (ConnectionFailure, ServerSelectionTimeoutError, OperationFailure) as e:
             print(f"[DB] MongoDB connection failed: {e}")
             print("[DB] Continuing with in-memory storage (data won't persist)")
             self._initialized = False

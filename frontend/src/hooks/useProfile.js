@@ -44,11 +44,17 @@ export const useProfile = () => {
 
   // Initialize profile with Firebase user data if available
   useEffect(() => {
-    if (user && user.name) {
-      setProfile((prev) => ({
-        ...prev,
-        name: user.name,
-      }));
+    if (user) {
+      setProfile({
+        name: user.name || '',
+        age: user.profile?.age ?? null,
+        income: user.profile?.income ?? null,
+        state: user.profile?.state || '',
+        gender: user.profile?.gender || '',
+        occupation: user.profile?.occupation || '',
+        education: user.profile?.education || '',
+        caste: user.profile?.caste || '',
+      });
     } else if (!user) {
       // User logged out - clear profile data from state but keep localStorage for guests
       // Profile will be reloaded from localStorage on next login if guest

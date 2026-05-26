@@ -350,8 +350,11 @@ async def chat(request: ChatRequest):
                 "role": "assistant",
                 "content": result["response_text"],
                 "intent": result["intent"],
+                "schemes": result["schemes"],
                 "schemes_found": len(result["schemes"]),
                 "eligible_count": result["eligible_count"],
+                "total_schemes": result["total_schemes"],
+                "compliance_verified": result["compliance_verified"],
             }
             db_service.save_chat_message(user_id, session_id, assistant_message)
 

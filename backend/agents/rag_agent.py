@@ -1,7 +1,11 @@
 """
 RAG Retrieval Agent
-Retrieves relevant scheme documents from FAISS vector store.
+Retrieves relevant scheme documents from ChromaDB vector store.
 Falls back to keyword search if vector search returns insufficient results.
+
+[Migration Note] Replaced FAISS vector store with ChromaDB.
+The retrieval logic (hybrid keyword + vector search) is unchanged.
+Only the vector store initialization and search calls were updated.
 """
 
 import os
@@ -10,7 +14,7 @@ from typing import Dict, List, Optional
 
 
 class RAGAgent:
-    """Retrieves relevant schemes using FAISS vector similarity search."""
+    """Retrieves relevant schemes using ChromaDB vector similarity search."""
 
     def __init__(self):
         """Initialize with vector store and raw scheme data."""
@@ -24,7 +28,8 @@ class RAGAgent:
         if self._initialized:
             return
 
-        from data.ingestion import FAISSStore, EmbeddingEngine, SchemeIngester
+        # [Migration] Import ChromaVectorStore instead of FAISSStore
+        from data.ingestion import ChromaVectorStore, EmbeddingEngine, SchemeIngester
 
         data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 
@@ -34,17 +39,18 @@ class RAGAgent:
             with open(data_path, "r", encoding="utf-8") as f:
                 self._schemes_db = json.load(f)
 
-        # Load or build vector store
-        index_path = os.path.join(data_dir, "faiss_index")
-        self._vector_store = FAISSStore(index_path=index_path)
-        loaded = self._vector_store.load()
+        # [Migration] Initialize ChromaDB persistent vector store
+        # ChromaDB auto-loads from disk if data exists — no manual load() needed
+        chroma_dir = os.path.join(data_dir, "chroma_db")
+        self._vector_store = ChromaVectorStore(persist_dir=chroma_dir)
 
-        if not loaded:
-            print("[RAG] No pre-built FAISS index found. Building now...")
+        # If collection is empty, build the index from scheme data
+        if not self._vector_store.has_data:
+            print("[RAG] No ChromaDB data found. Building index now...")
             ingester = SchemeIngester()
             ingester.build_index()
-            self._vector_store = FAISSStore(index_path=index_path)
-            self._vector_store.load()
+            # Re-initialize vector store to pick up new data
+            self._vector_store = ChromaVectorStore(persist_dir=chroma_dir)
 
         self._embedding_engine = EmbeddingEngine()
         self._initialized = True
@@ -57,15 +63,26 @@ class RAGAgent:
             self.initialize()
         return self._schemes_db
 
-    def vector_search(self, query: str, top_k: int = 5) -> List[Dict]:
-        """Search vector store for relevant chunks."""
+    def vector_search(self, query: str, top_k: int = 5, where: Dict = None) -> List[Dict]:
+        """Search vector store for relevant chunks.
+        
+        Args:
+            query: Search query string
+            top_k: Number of results to return
+            where: Optional metadata filter, e.g. {"state": "Tamil Nadu"}
+        
+        [Migration Note] Added optional 'where' parameter for metadata filtering,
+        a new capability provided by ChromaDB that FAISS did not support.
+        """
         self.initialize()
 
-        if self._vector_store is None or self._vector_store.index is None:
+        if self._vector_store is None or not self._vector_store.has_data:
             return []
 
         query_embedding = self._embedding_engine.embed_query(query)
-        results = self._vector_store.search(query_embedding, top_k=top_k)
+        # [Migration] ChromaVectorStore.search() replaces FAISSStore.search()
+        # Return format is identical: [{text, metadata, score}]
+        results = self._vector_store.search(query_embedding, top_k=top_k, where=where)
         return results
 
     def keyword_search(self, query: str, entities: Dict = None) -> List[Dict]:
@@ -215,5 +232,6 @@ class RAGAgent:
             "query": query,
             "retrieved_schemes": schemes,
             "count": len(schemes),
-            "source": "FAISS + keyword hybrid",
+            # [Migration] Updated source label from FAISS to ChromaDB
+            "source": "ChromaDB + keyword hybrid",
         }
