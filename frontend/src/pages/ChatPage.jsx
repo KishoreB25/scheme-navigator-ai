@@ -9,7 +9,7 @@ import GoogleLoginButton from '../components/GoogleLoginButton';
 import { Sparkles, Trash2, ShieldCheck, Database, Sliders, ArrowRight, Info, IndianRupee, MapPin, Briefcase, Calendar, LogOut } from 'lucide-react';
 
 export default function ChatPage() {
-  const { messages, isLoading, sendQuery, clearHistory } = useChat();
+  const { messages, isLoading, error, sendQuery, clearHistory } = useChat();
   const { profile, isComplete } = useProfile();
   const { user, logout } = useAuth();
   const messagesEndRef = useRef(null);
@@ -107,6 +107,11 @@ export default function ChatPage() {
 
         {/* Input Bar */}
         <div className="p-6 border-t border-border/80 bg-surface/20 rounded-b-2xl z-20 backdrop-blur-md">
+          {error && (
+            <div className="mb-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-300">
+              {error}
+            </div>
+          )}
           <ChatInput onSend={handleSend} disabled={isLoading} />
         </div>
       </div>
