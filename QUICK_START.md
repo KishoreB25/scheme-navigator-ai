@@ -21,7 +21,7 @@ Go to: **http://localhost:5173**
 
 - **Backend:** All 6 agents working, 23 schemes indexed, Groq LLM active
 - **Frontend:** React components ready, API integration fixed
-- **Database:** FAISS vector DB with 25 chunks pre-indexed
+- **Database:** ChromaDB vector DB with 25 chunks pre-indexed
 - **API Tests:** All 7 tests passing (100% success rate)
 
 ---
