@@ -15,7 +15,7 @@
 ## 🛠️ Tech Stack
 
 **Languages**  
-`Python 3.10+` `JavaScript` `SQL`
+`Python 3.10+` `JavaScript`
 
 **Frameworks & UI**  
 `React 19` `FastAPI` `Vite` `TailwindCSS`
@@ -356,76 +356,11 @@ scheme-navigator-ai/
 
 ## 🔄 Data Flow Pipelines
 
-### **1. Chat Query Processing Pipeline**
-```
-1. User enters query in chat (text or voice)
-   ↓
-2. Frontend sends to Backend /chat endpoint
-   ↓
-3. Query Agent:
-   - Parses intent (scheme_search, eligibility_check, application_help)
-   - Extracts entities (age, income, occupation, state)
-   - Normalizes user profile data
-   ↓
-4. RAG Agent:
-   - Searches ChromaDB vector index
-   - Performs keyword fallback if needed
-   - Ranks results by relevance
-   ↓
-5. Eligibility Agent:
-   - Applies government criteria rules
-   - Checks income, age, occupation requirements
-   - Calculates eligibility percentage
-   ↓
-6. Compliance Agent:
-   - Validates response accuracy
-   - Prevents hallucinations
-   - Adds source citations
-   ↓
-7. Response formatting & voice synthesis
-   ↓
-8. Frontend displays formatted response
-```
+**Chat Query**: User → Query Agent (intent extraction) → RAG Agent (semantic search) → Eligibility Agent (criteria check) → Compliance Agent (validation) → Response
 
-### **2. User Profile & Eligibility Tracking Pipeline**
-```
-1. User completes profile form
-   ↓
-2. Profile saved to Firebase + MongoDB
-   ↓
-3. Alert Agent:
-   - Checks all 23+ schemes
-   - Identifies eligible schemes
-   - Tracks previous eligibility
-   ↓
-4. Generates alerts for:
-   - Newly eligible schemes
-   - Expiring deadlines
-   - Recommended applications
-   ↓
-5. Delivers via:
-   - In-app notifications
-   - Email alerts
-   - WhatsApp messages
-```
+**User Profile**: Profile Form → Firebase/MongoDB → Alert Agent (scheme matching) → Notifications (in-app/email/WhatsApp)
 
-### **3. Application Guidance Pipeline**
-```
-1. User requests "How to apply for PM-KISAN?"
-   ↓
-2. Action Agent generates step-by-step guide:
-   - List required documents
-   - Application process steps
-   - Government links
-   - Estimated processing time
-   ↓
-3. Step information enriched with:
-   - Document templates
-   - FAQ answers
-   - Common mistakes to avoid
-   ↓
-4. Formatted for user accessibility
-```
+**Application Help**: User Query → Action Agent (step-by-step guide) → Document templates + FAQ → Formatted response
 
 ---
 
@@ -440,37 +375,6 @@ scheme-navigator-ai/
 | `POST` | `/apply` | Submit scheme application |
 | `GET` | `/alerts` | Fetch user alerts & notifications |
 | `POST` | `/voice` | Process voice input |
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- Built for Economic Times GenAI Hackathon
-- Government scheme data from official sources
-- LLM powered by Groq
-- Vector embeddings with ChromaDB
-
-## 🎬 Demo Flow
-
-1. **Profile Setup**: Fill age, state, income, occupation
-2. **Query**: "I am a farmer from Maharashtra"
-3. **System Processes**:
-   - Understands intent (search)
-   - Extracts entities (farmer, Maharashtra, 30y)
-   - Finds matching schemes
-   - Checks eligibility
-4. **Results Display**:
-   - 3+ schemes with details
-   - Application steps
-   - Benefits list
-   - Eligibility status
-5. **Missed Benefits**: Shows additional eligible schemes
 
 ---
 
@@ -525,49 +429,20 @@ GET http://localhost:8000/missed?age=30&state=Maharashtra&occupation=farmer
 
 ---
 
-## 🎯 Key Features
+## 📊 Data Ingestion
 
-**Smart Query Understanding**
-- Detects user intent (search, eligibility, apply)
-- Extracts relevant entities (age, income, state, occupation)
-
-**Intelligent Eligibility**
-- Rule-based checking
-- Age, income, occupation validation
-- Gender and caste-based schemes (extensible)
-
-**Missed Benefits Detection**
-- Finds schemes user didn't search for
-- Based on user profile and eligibility
-- Shows unexpected opportunities
-
-**Voice Input Support**
-- Speech-to-text integration
-- Browser-based using Web Speech API
-- Fallback for unsupported browsers
-
-**Beautiful UI**
-- Clean chat interface
-- Responsive design
-- Tailwind CSS styling
-- Lucide React icons
-
-**Production Ready**
-- Error handling
-- CORS configured
-- Input validation
-- Response caching
+Load scheme data into ChromaDB for semantic search:
+```bash
+python -m backend.data.ingestion add       # Add schemes to ChromaDB
+python -m backend.data.ingestion list      # List indexed schemes
+python -m backend.data.ingestion reset     # Clear database
+```
 
 ---
 
 ## 🧪 Testing
 
 ### Run All Tests
-```bash
-python run_tests.py
-```
-
-### Quick API Test
 ```bash
 python test_api.py
 ```
@@ -579,72 +454,6 @@ python test_api.py
 4. Verify schemes appear with details
 5. Test voice input
 6. Check missed benefits section
-
----
-
-## 🎓 Tech Stack
-
-**Backend**:
-- FastAPI - REST API framework
-- Python 3.8+
-- Pydantic - Data validation
-- Groq SDK - LLM Generation (Llama-3.3-70b)
-- ChromaDB & Sentence Transformers - Local Vector DB and Embeddings
-
-**Frontend**:
-- React 19.2
-- Vite - Build tool
-- Tailwind CSS - Styling
-- Lucide Icons - Icons
-
-**Integration**:
-- Axios - HTTP client
-- Web Speech API - Voice input
-
----
-
-## 🚀 Next Steps for Enhancement
-
-### High Priority (1 hour)
-1. Add 10+ more schemes to database
-2. Improve eligibility rules (gender, caste, state-specific)
-3. Test with 5+ user personas
-4. Polish voice input UI
-
-### Medium Priority (2-3 hours)
-1. Expand ChromaDB-backed semantic search
-2. Add real LLM (GPT-3.5 or open source)
-3. Expand to 50+ government schemes
-4. Add regional language support
-
-### Low Priority (Future)
-1. WhatsApp integration with Twilio
-2. Mobile app version
-3. Admin dashboard for schemes management
-4. Advanced compliance guardrails
-
----
-
-## 📝 Environment Setup
-
-### Backend (`backend/.env`)
-```
-HF_TOKEN=
-GROQ_API_KEY=
-MONGODB_URL=mongodb://localhost:27017
-MONGODB_DB_NAME=policygpt_bharat
-DEBUG=true
-BACKEND_URL=http://localhost:8000
-CORS_ORIGINS=["http://localhost:5173","http://localhost:3000","*"]
-CHROMA_PERSIST_DIR=data/chroma_db
-CHROMA_COLLECTION_NAME=bharat_policies
-FIREBASE_CREDENTIALS_PATH=firebase/your-firebase-service-account.json
-```
-
-### Frontend (`frontend/.env` or `frontend/.env.local`)
-```
-VITE_API_URL=http://localhost:8000
-```
 
 ---
 
@@ -671,27 +480,6 @@ VITE_API_URL=http://localhost:8000
   7. Alert (Missed Benefits)
 ```
 
-### Pipeline Deep Dive
-
-1. **Query Agent**: Extracts intent and profile entities (age, occupation, state, income) from the user's natural language question.
-2. **RAG Agent (Retrieval)**: Uses a hybrid approach—ChromaDB vector semantic search via `sentence-transformers` + intelligent keyword matching to retrieve the most relevant schemes without hallucination.
-3. **Eligibility Agent**: A strict rule engine that checks the user's profile against the official scheme criteria, providing a detailed breakdown.
-4. **Compliance Agent**: Enforces strict guardrails. Ensures responses only use retrieved data and always contain mandatory fields (benefits, documents, official links).
-5. **LLM Generation Service (Generation)**: Uses the fast Groq API (`llama-3.3-70b-versatile`) to translate the strict, validated data into a warm, helpful, and natural language response.
-6. **Action Agent**: Extracts and formats exact application steps and required documents.
-7. **Alert Agent (Missed Benefits Detector)**: Runs silently in the background, scanning the entire scheme database against the user profile to detect "Missed Benefits" the user is eligible for but didn't explicitly ask about.
-
-### Frontend Details
-
-The frontend is a React 19 single-page application built with Vite and Tailwind CSS. It features:
-- **Interactive Chat Interface**: A sleek, modern messenger where users converse with the AI in natural language.
-- **Dynamic User Profile Manager**: A live form that holds age, income, state, and occupation state, which is automatically appended to every chat query.
-- **Missed Benefits Dashboard**: A dedicated side panel displaying proactive alerts and "hidden" schemes discovered by the Alert Agent.
-- **Voice Input**: Web Speech API integration, allowing rural or differently-abled users to speak their queries instead of typing.
-
----
-
-
 ## 📈 Performance
 
 - **API Response Time**: <2 seconds 
@@ -700,5 +488,16 @@ The frontend is a React 19 single-page application built with Vite and Tailwind 
 
 ---
 
+## 📄 License
 
-**Project**: PolicySetu - AI Government Scheme Advisor  
+This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- Built for Economic Times GenAI Hackathon
+- Government scheme data from official sources
+- LLM powered by Groq
+- Vector embeddings with ChromaDB
+
