@@ -7,7 +7,7 @@ import {
   onAuthStateChanged,
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
-import { API_BASE_URL } from '../services/api';
+import { API_BASE_URL, checkBackendReady } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -81,6 +81,22 @@ export function AuthProvider({ children }) {
     });
 
     return unsubscribe;
+  }, []);
+
+  // Check if backend is ready on app initialization
+  useEffect(() => {
+    const initializeBackend = async () => {
+      try {
+        console.log('🔄 Checking backend readiness...');
+        await checkBackendReady(60000); // Wait up to 60 seconds
+        console.log('✅ Backend initialized and ready');
+      } catch (err) {
+        console.warn('⚠️ Backend initialization check:', err.message);
+        // Continue anyway - backend might be initializing
+      }
+    };
+
+    initializeBackend();
   }, []);
 
   const loginWithGoogle = async () => {
