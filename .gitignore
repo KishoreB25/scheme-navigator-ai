@@ -71,5 +71,3 @@ __pycache__/
 #Firebase
 backend/firebase
 
-#Data
-schemes_data.json
