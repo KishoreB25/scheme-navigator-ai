@@ -396,6 +396,10 @@ async def chat(request: ChatRequest):
         )
 
     except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"[Chat] Error: {str(e)}")
+        print(f"[Chat] Traceback:\n{error_trace}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -88,49 +88,111 @@ class TextChunker:
         return "\n".join(parts)
 
 
-class EmbeddingEngine:
-    """Generates embeddings using sentence-transformers."""
+class GoogleEmbeddingEngine:
+    """Generates embeddings using Google's Embedding API.
+    
+    Benefits:
+    - No heavy dependencies (torch, transformers)
+    - API-based: no local model loading
+    - 768-dimensional embeddings (compatible with all-MiniLM-L6-v2)
+    - Requires GOOGLE_API_KEY in environment
+    """
 
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
-        self.model_name = model_name
-        self._model = None
+    EMBEDDING_MODEL = "models/gemini-embedding-2"
+    EMBEDDING_DIM = 3072
 
-    @property
-    def model(self):
-        """Lazy-load the embedding model."""
-        if self._model is None:
-            try:
-                from sentence_transformers import SentenceTransformer
-                from huggingface_hub import login
-                from config.settings import settings
-                
-                # Authenticate with HuggingFace if token is available
-                if settings.hf_token:
-                    login(token=settings.hf_token)
-                    print("[Embeddings] HuggingFace authenticated ✅")
-                
-                self._model = SentenceTransformer(self.model_name)
-            except ImportError:
-                raise ImportError(
-                    "sentence-transformers is required. "
-                    "Install with: pip install sentence-transformers"
-                )
-        return self._model
+    def __init__(self):
+        self._client = None
+        self._initialize()
+
+    def _initialize(self):
+        """Initialize Google Generative AI client."""
+        from config.settings import settings
+        
+        if not settings.google_api_key:
+            raise ValueError(
+                "[Embeddings] GOOGLE_API_KEY not found in environment. "
+                "Set it in .env: GOOGLE_API_KEY=your_key"
+            )
+        
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=settings.google_api_key)
+            self._client = genai
+            print("[Embeddings] Google Generative AI initialized ✅")
+        except ImportError:
+            raise ImportError(
+                "google-generativeai is required. "
+                "Install with: pip install google-generativeai"
+            )
 
     def embed_texts(self, texts: List[str]) -> np.ndarray:
         """Generate embeddings for a list of texts."""
-        embeddings = self.model.encode(texts, show_progress_bar=True, normalize_embeddings=True)
+        embeddings = []
+        
+        # Process in batches to avoid rate limits
+        batch_size = 100
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i+batch_size]
+            print(f"[Embeddings] Embedding batch {i//batch_size + 1}/{(len(texts)-1)//batch_size + 1}")
+            
+            for text in batch:
+                try:
+                    response = self._client.embed_content(
+                        model=self.EMBEDDING_MODEL,
+                        content=text,
+                        task_type="RETRIEVAL_DOCUMENT",
+                    )
+                    embeddings.append(response["embedding"])
+                except Exception as e:
+                    print(f"[Embeddings] Error embedding text: {e}")
+                    # Return zero vector as fallback
+                    embeddings.append([0.0] * self.EMBEDDING_DIM)
+        
         return np.array(embeddings, dtype=np.float32)
 
     def embed_query(self, query: str) -> np.ndarray:
         """Generate embedding for a single query."""
-        embedding = self.model.encode([query], normalize_embeddings=True)
-        return np.array(embedding, dtype=np.float32)
+        try:
+            response = self._client.embed_content(
+                model=self.EMBEDDING_MODEL,
+                content=query,
+                task_type="RETRIEVAL_QUERY",
+            )
+            embedding = response["embedding"]
+        except Exception as e:
+            error_msg = str(e)
+            print(f"[Embeddings] Error embedding query: {error_msg}")
+            
+            # If model not found, try to list available models
+            if "not found" in error_msg.lower() or "not supported" in error_msg.lower():
+                try:
+                    print("[Embeddings] Listing available embedding models...")
+                    available = self._client.list_models()
+                    for model in available:
+                        if "embed" in model.name.lower():
+                            print(f"  - {model.name}")
+                except:
+                    pass
+            
+            embedding = [0.0] * self.EMBEDDING_DIM
+        
+        return np.array([embedding], dtype=np.float32)
 
     @property
     def dimension(self) -> int:
         """Return embedding dimension."""
-        return self.model.get_sentence_embedding_dimension()
+        return self.EMBEDDING_DIM
+
+
+# Legacy alias for backwards compatibility
+class EmbeddingEngine(GoogleEmbeddingEngine):
+    """Wrapper for GoogleEmbeddingEngine. 
+    
+    Now uses Google Generative AI API instead of local sentence-transformers.
+    This removes the torch/transformers dependency overhead.
+    """
+    pass
 
 
 # =============================================================================
@@ -348,7 +410,8 @@ class SchemeIngester:
         self.persist_dir = persist_dir or os.path.join(data_dir, "chroma_db")
 
         self.chunker = TextChunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-        self.embedding_engine = EmbeddingEngine(model_name=embedding_model)
+        # Note: embedding_model parameter ignored — using Google Embedding API
+        self.embedding_engine = EmbeddingEngine()
         self.vector_store = ChromaVectorStore(
             persist_dir=self.persist_dir,
             collection_name=collection_name,

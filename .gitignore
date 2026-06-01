@@ -45,6 +45,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Firebase Credentials
+backend/firebase/*.json
+!backend/firebase/.gitkeep
+
 # IDEs and Editors
 .idea/
 .vscode/
