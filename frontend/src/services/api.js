@@ -11,8 +11,32 @@ console.log('API_BASE_URL:', API_BASE_URL); // Debug log
 // Configure axios with reasonable timeout
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000, // increased for ChromaDB + embedding queries
+  timeout: 45000, // increased for ChromaDB + embedding queries + first-time initialization
 });
+
+// Check if backend is ready for requests
+export const checkBackendReady = async (maxWaitMs = 60000) => {
+  const startTime = Date.now();
+  const pollInterval = 2000; // Check every 2 seconds
+
+  while (Date.now() - startTime < maxWaitMs) {
+    try {
+      const response = await apiClient.get('/ready', { timeout: 5000 });
+      if (response.data.ready) {
+        console.log('✅ Backend is ready:', response.data);
+        return true;
+      }
+      console.log('⏳ Backend initializing...', response.data.message);
+    } catch (error) {
+      console.log('⏳ Waiting for backend to start...');
+    }
+    
+    // Wait before next check
+    await new Promise(resolve => setTimeout(resolve, pollInterval));
+  }
+
+  throw new Error('Backend failed to initialize within timeout. Please refresh the page.');
+};
 
 // Transform backend response to frontend format
 const transformSchemeResponse = (backendSchemes) => {

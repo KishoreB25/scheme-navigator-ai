@@ -53,6 +53,8 @@ class RAGAgent:
             self._vector_store = ChromaVectorStore(persist_dir=chroma_dir)
 
         self._embedding_engine = EmbeddingEngine()
+        # Eagerly load the embedding model to avoid first-request timeout
+        _ = self._embedding_engine.model
         self._initialized = True
         print(f"[RAG] Initialized with {self._vector_store.total_chunks} chunks, {len(self._schemes_db)} schemes")
 

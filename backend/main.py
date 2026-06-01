@@ -181,6 +181,33 @@ async def root():
     }
 
 
+@app.get("/ready")
+async def ready_check():
+    """Readiness check - returns 200 only if fully initialized and ready for chat."""
+    try:
+        status = orchestrator.vector_store_status
+        if status.get("initialized") and status.get("total_chunks", 0) > 0:
+            return {
+                "ready": True,
+                "initialized": True,
+                "total_schemes": status.get("total_schemes", 0),
+                "total_chunks": status.get("total_chunks", 0),
+                "message": "Backend is ready to accept chat requests",
+            }
+        else:
+            return {
+                "ready": False,
+                "initialized": False,
+                "message": "Backend is initializing... Please wait",
+            }
+    except Exception as e:
+        return {
+            "ready": False,
+            "initialized": False,
+            "message": f"Backend error: {str(e)}",
+        }
+
+
 @app.post("/auth/google", response_model=AuthResponse)
 async def google_auth(request: FirebaseAuthRequest):
     """
