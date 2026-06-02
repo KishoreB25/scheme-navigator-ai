@@ -29,7 +29,7 @@ export default function ChatPage() {
   const welcomeMessage = {
     id: 'welcome',
     sender: 'assistant',
-    content: `Namaste! 🙏 I am PolicySetu AI, your personal Government Scheme & Citizen Services Advisor.\n\nTo find the most suitable schemes for you, please fill out your profile in the **User Profile** section so I can instantly check your eligibility.\n\nHow can I help you today? (e.g., "What schemes are available for a farmer in Gujarat?")`,
+    content: `Namaste! I am PolicySetu AI, your personal Government Scheme & Citizen Services Advisor.\n\nTo find the most suitable schemes for you, please fill out your profile in the **User Profile** section so I can instantly check your eligibility.\n\nHow can I help you today? (e.g., "What schemes are available for a farmer in Gujarat?")`,
   };
 
   // Only show profile data if user is logged in
