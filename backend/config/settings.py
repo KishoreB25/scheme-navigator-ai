@@ -15,8 +15,10 @@ class Settings(BaseSettings):
     api_title: str = "PolicyGPT Bharat API"
     api_version: str = "2.0.0"
     debug: bool = True
-    backend_url: str = "http://localhost:8000"
-    cors_origins: list = ["http://localhost:5173", "http://localhost:3000", "*"]
+    backend_url: str = "https://scheme-navigator-ai.onrender.com"
+    cors_origins: list = [
+        "https://scheme-navigator-ai.vercel.app"
+    ]
 
     # LLM (optional — system works without it using rule-based agents)
     openai_api_key: Optional[str] = None
