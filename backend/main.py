@@ -10,10 +10,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, List
+import os
 import uuid
 
 from config.settings import settings
 from orchestrator import PipelineOrchestrator
+from data.ingestion import ChromaVectorStore, SchemeIngester
 from services.database import db_service
 from services.firebase_service import FirebaseService
 
@@ -117,6 +119,21 @@ orchestrator = PipelineOrchestrator()
 firebase_service = FirebaseService()
 
 
+def _chroma_persist_dir() -> str:
+    """Return the on-disk ChromaDB directory used by the backend."""
+    return os.path.join(os.path.dirname(__file__), "data", "chroma_db")
+
+
+def _vector_db_has_data() -> bool:
+    """Check whether ChromaDB already contains indexed scheme data."""
+    try:
+        vector_store = ChromaVectorStore(persist_dir=_chroma_persist_dir())
+        return vector_store.has_data
+    except Exception as e:
+        print(f"⚠️ Vector DB preflight failed: {e}")
+        return False
+
+
 # ============= Startup Event =============
 
 
@@ -140,6 +157,17 @@ async def startup_event():
             print("✅ MongoDB: Connected and ready")
         else:
             print("⚠️ MongoDB: Not available, using in-memory storage")
+
+        # Explicitly ingest only when the vector DB is empty.
+        # This keeps normal Render restarts fast while still self-healing
+        # after a fresh deploy or empty ChromaDB volume.
+        if _vector_db_has_data():
+            print("✅ Vector DB already populated; skipping ingestion")
+        else:
+            print("📚 Vector DB empty; building ChromaDB index once...")
+            ingester = SchemeIngester()
+            chunk_count = ingester.build_index()
+            print(f"✅ Ingestion completed: {chunk_count} chunks indexed")
 
         # Initialize vector store and agents
         orchestrator.initialize()
