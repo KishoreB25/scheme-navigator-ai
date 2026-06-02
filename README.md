@@ -175,27 +175,43 @@ cd scheme-navigator-ai
 
 ### **Step 2: Environment Configuration**
 
-Create `.env` file in project root:
+Create the backend environment file at `backend/.env`.
+The backend loads environment variables from this file automatically.
+
+You can use `backend/.env.example` as a template and fill in your values:
 
 ```bash
-# LLM Configuration
-GROQ_API_KEY=your_groq_api_key_here
+# HuggingFace
+HF_TOKEN=your_huggingface_token
 
-# Firebase Configuration
-FIREBASE_API_KEY=your_firebase_api_key
-FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-FIREBASE_APP_ID=your_app_id
+# LLM / Embeddings
+GROQ_API_KEY=your_groq_api_key
+OPENAI_API_KEY=
+GOOGLE_API_KEY=your_google_api_key
 
-# MongoDB
-MONGODB_URL=mongodb+srv://user:password@cluster.mongodb.net/scheme-navigator
+# Database
+MONGODB_URL=your_mongodb_connection_string
+MONGODB_DB_NAME=policygpt_bharat
 
-# Server Configuration
-API_HOST=0.0.0.0
-API_PORT=8000
+# API Configuration
+DEBUG=true
+BACKEND_URL=http://localhost:8000
+CORS_ORIGINS=["http://localhost:5173","http://localhost:3000","*"]
+
+# ChromaDB Vector Store
+CHROMA_PERSIST_DIR=data/chroma_db
+CHROMA_COLLECTION_NAME=bharat_policies
+
+# Firebase Credentials
+# Paste the Firebase service-account JSON as a single line string
+FIREBASE_CREDENTIALS_JSON={...}
 ```
+
+Notes:
+
+- Keep `backend/.env` out of version control.
+- Use `backend/.env.example` for a shareable template.
+- On Render, add the same variables in the service environment settings.
 
 ### **Step 3: Install Dependencies**
 
@@ -216,7 +232,7 @@ npm install
 **Terminal 1: Backend API**
 ```bash
 cd backend
-python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+python -m uvicorn main:app --host 0.0.0.0 --port 8000
 # Runs on http://localhost:8000
 # Swagger UI: http://localhost:8000/docs
 ```
@@ -346,7 +362,6 @@ scheme-navigator-ai/
 │   ├── vite.config.js
 │   └── tailwind.config.js
 │
-├── .env                          # Environment variables
 ├── README.md                     # This file
 ├── QUICK_START.md               # 30-second setup
 └── requirements.txt
