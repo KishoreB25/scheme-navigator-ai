@@ -4,7 +4,7 @@
 
 ### Terminal 1: Start Backend
 ```bash
-cd backend && python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+cd backend && python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 ### Terminal 2: Start Frontend  
@@ -19,9 +19,9 @@ Go to: **http://localhost:5173**
 
 ## What's Already Setup For You
 
-- **Backend:** All 6 agents working, 23 schemes indexed, Groq LLM active
+- **Backend:** All 6 agents working, Groq LLM active
 - **Frontend:** React components ready, API integration fixed
-- **Database:** ChromaDB vector DB with 25 chunks pre-indexed
+- **Database:** ChromaDB vector DB auto-loads and auto-ingests only when empty
 - **API Tests:** All 7 tests passing (100% success rate)
 
 ---
@@ -40,11 +40,12 @@ Go to: **http://localhost:5173**
 ##  Live Backend Status
 
 **Backend:** http://localhost:8000  
-**Health Check:** http://localhost:8000/docs (Swagger UI)
+**Health Check:** http://localhost:8000/  
+**Swagger UI:** http://localhost:8000/docs
 
 ```
 Groq LLM: llama-3.3-70b-versatile
-Vector DB: 25 chunks from 23 schemes  
+Vector DB: ChromaDB persistent store  
 All Agents: Initialized (Query, RAG, Eligibility, Compliance, Action, Alert)
 APIs: 6 endpoints ready
 Tests: 7/7 passing
@@ -55,6 +56,8 @@ Tests: 7/7 passing
 ## You're All Set!
 
 The system is **fully integrated and tested**. Just run the two commands above and open the browser.
+
+On first boot, the backend will automatically ingest scheme data only if ChromaDB is empty. After that, startup stays fast.
 
 For detailed info: See `INTEGRATION_COMPLETE.md` or `INTEGRATION_TEST_GUIDE.md`
 
@@ -67,9 +70,10 @@ For detailed info: See `INTEGRATION_COMPLETE.md` or `INTEGRATION_TEST_GUIDE.md`
 | ModuleNotFoundError | `pip install -r requirements.txt` |
 | Port 8000 in use | Kill process or change port |
 | Blank frontend | Clear browser cache |
-| No backend connection | Ensure backend.running on 8000 |
+| No backend connection | Ensure backend is running on 8000 |
+| Empty vector DB on first start | Let startup finish once; ingestion runs automatically |
 
 ---
 
-**Status:**  Production Ready  
-**Last Updated:** March 28, 2026
+**Status:** Production Ready  
+**Last Updated:** June 2, 2026
