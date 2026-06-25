@@ -1,4 +1,4 @@
-# 🚀 Scheme Navigator AI
+# PolicySetu
 
 ![Scheme Navigator](https://img.shields.io/badge/Scheme-Navigator-0F172A?style=for-the-badge&logo=vercel&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)
