@@ -13,6 +13,16 @@ class QueryAgent:
 
     # Intent keywords ordered by priority (more specific first)
     INTENTS = {
+        "greeting": [
+            "hi", "hello", "hey", "namaste", "namaskar", "good morning",
+            "good evening", "good afternoon", "thanks", "thank you",
+            "bye", "goodbye", "ok", "okay",
+        ],
+        "follow_up": [
+            "tell me more", "more details", "what about", "and for",
+            "what else", "anything else", "continue", "go on",
+            "elaborate", "explain more", "how about",
+        ],
         "eligibility": [
             "eligible", "eligibility", "qualify", "am i", "do i", "can i",
             "qualify for", "am i eligible", "check eligibility"
