@@ -39,6 +39,7 @@ class ChatRequest(BaseModel):
     profile: Optional[UserProfile] = None
     user_id: Optional[str] = None
     session_id: Optional[str] = None
+    language: Optional[str] = "en"
 
 
 class ProfileRequest(BaseModel):
@@ -64,6 +65,7 @@ class ChatResponse(BaseModel):
     eligible_count: int
     total_schemes: int
     compliance_verified: bool
+    response_type: str = "scheme_results"  # "conversational" | "scheme_results"
 
 
 # ============= Firebase Auth Models =============
@@ -381,7 +383,8 @@ async def create_guest_profile(request: GuestProfileRequest):
 async def chat(request: ChatRequest):
     """
     Main chat endpoint.
-    Pipeline: Query Agent → RAG Agent → Eligibility Agent → Compliance Agent → Action Agent → Response
+    Pipeline: Intent Classification → Route → (Conversational | Full Scheme Pipeline) → Response
+    Passes chat history for multi-turn context.
     Saves chat history to MongoDB if available.
     """
     try:
@@ -389,10 +392,27 @@ async def chat(request: ChatRequest):
         user_id = request.user_id or str(uuid.uuid4())
         profile_dict = request.profile.model_dump(exclude_none=True) if request.profile else {}
 
-        # Run the full pipeline
-        result = orchestrator.run_pipeline(request.query, profile_dict)
+        # ── Fetch recent chat history for multi-turn context ──
+        chat_history = []
+        if db_service.is_available:
+            try:
+                raw_history = db_service.get_chat_history(user_id, session_id, limit=6)
+                chat_history = [
+                    {"role": msg.get("role", "user"), "content": msg.get("content", "")}
+                    for msg in raw_history
+                    if msg.get("content")
+                ]
+            except Exception as hist_err:
+                print(f"[Chat] History fetch warning: {hist_err}")
 
-        # Save to MongoDB if available
+        # ── Run the intelligent pipeline (with routing) ──
+        result = orchestrator.run_pipeline(
+            query=request.query,
+            user_profile=profile_dict,
+            chat_history=chat_history,
+        )
+
+        # ── Save messages to MongoDB ──
         if db_service.is_available:
             user_message = {
                 "role": "user",
@@ -410,6 +430,7 @@ async def chat(request: ChatRequest):
                 "eligible_count": result["eligible_count"],
                 "total_schemes": result["total_schemes"],
                 "compliance_verified": result["compliance_verified"],
+                "response_type": result.get("response_type", "scheme_results"),
             }
             db_service.save_chat_message(user_id, session_id, assistant_message)
 
@@ -421,6 +442,7 @@ async def chat(request: ChatRequest):
             eligible_count=result["eligible_count"],
             total_schemes=result["total_schemes"],
             compliance_verified=result["compliance_verified"],
+            response_type=result.get("response_type", "scheme_results"),
         )
 
     except Exception as e:
