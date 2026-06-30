@@ -245,7 +245,7 @@ class ChromaVectorStore:
         if self._collection.count() > 0:
             try:
                 peek_data = self._collection.peek(limit=1)
-                if peek_data and peek_data.get("embeddings"):
+                if peek_data and peek_data.get("embeddings") is not None and len(peek_data["embeddings"]) > 0:
                     first_emb = peek_data["embeddings"][0]
                     if len(first_emb) != 3072:
                         print(f"[ChromaDB] Collection dimension ({len(first_emb)}) mismatch. Expected: 3072. Re-indexing...")

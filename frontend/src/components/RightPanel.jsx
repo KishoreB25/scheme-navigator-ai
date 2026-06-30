@@ -104,12 +104,12 @@ export default function RightPanel() {
 
         {/* Action Buttons */}
         <div className="flex flex-col gap-2 pt-2">
-          <Link
-            to="/profile"
-            className="w-full border border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 transition font-semibold text-sm text-center"
+          <button
+            onClick={() => navigate('/profile')}
+            className="w-full border border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 transition font-semibold text-sm text-center cursor-pointer"
           >
             Edit Profile
-          </Link>
+          </button>
           <GoogleLoginButton />
         </div>
       </div>

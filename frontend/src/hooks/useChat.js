@@ -20,6 +20,7 @@ const toMessage = (message) => ({
   eligible_count: message.eligible_count,
   total_schemes: message.total_schemes,
   compliance_verified: message.compliance_verified,
+  response_type: message.response_type,
   isError: message.isError || false,
 });
 
