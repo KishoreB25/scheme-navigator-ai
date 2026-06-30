@@ -76,6 +76,14 @@ class MongoDBService:
             # Missed schemes tracking - use firebaseUid for consistency
             self._db.missed_schemes.create_index([("firebaseUid", ASCENDING), ("scheme_id", ASCENDING)])
 
+            # Alert subscriptions collection
+            self._db.alert_subscriptions.create_index("phone", unique=True)
+            self._db.alert_subscriptions.create_index("user_id")
+
+            # Scheduled alerts collection
+            self._db.scheduled_alerts.create_index([("user_id", ASCENDING), ("scheme_id", ASCENDING)])
+            self._db.scheduled_alerts.create_index("created_at")
+
             print("[DB] Indexes created successfully")
         except Exception as e:
             print(f"[DB] Error creating indexes: {e}")
@@ -508,6 +516,49 @@ class MongoDBService:
         except Exception as e:
             print(f"[DB] Error merging guest user: {e}")
             return {"merged": False, "error": str(e)}
+
+    # ============= ALERT OPERATIONS =============
+
+    def save_alert_subscription(self, phone: str, subscription: Dict) -> Dict:
+        """Save/update alert subscription for a phone number"""
+        if not self.is_available:
+            return {"saved": False}
+
+        try:
+            sub_doc = {
+                "phone": phone,
+                **subscription,
+                "updated_at": datetime.utcnow(),
+            }
+            if "created_at" not in sub_doc:
+                sub_doc["created_at"] = datetime.utcnow()
+
+            result = self._db.alert_subscriptions.update_one(
+                {"phone": phone},
+                {"$set": sub_doc},
+                upsert=True
+            )
+            return {"saved": True, "upserted": result.upserted_id is not None}
+        except Exception as e:
+            print(f"[DB] Error saving alert subscription: {e}")
+            return {"saved": False}
+
+    def save_scheduled_alert(self, user_id: str, alert: Dict) -> Dict:
+        """Save a scheduled alert document"""
+        if not self.is_available:
+            return {"saved": False}
+
+        try:
+            alert_doc = {
+                "user_id": user_id,
+                **alert,
+                "saved_at": datetime.utcnow(),
+            }
+            result = self._db.scheduled_alerts.insert_one(alert_doc)
+            return {"saved": True, "alert_id": str(result.inserted_id)}
+        except Exception as e:
+            print(f"[DB] Error saving scheduled alert: {e}")
+            return {"saved": False}
 
 
 # Global instance
