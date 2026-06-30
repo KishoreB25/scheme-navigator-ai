@@ -35,7 +35,7 @@ def test_input_sanitization():
     sanitized_sql = sanitize_input(sql_input)
     assert "UNION SELECT" not in sanitized_sql, "Failed to strip SQL injection keywords"
 
-    print("✅ Input Sanitization tests PASSED")
+    print("[SUCCESS] Input Sanitization tests PASSED")
 
 
 def test_freshness_checker():
@@ -55,9 +55,10 @@ def test_freshness_checker():
     # Test staleness info breakdown
     info = checker.get_staleness_info(stale_scheme)
     assert info["is_stale"] == True
-    assert info["status"] == "⚠️ Stale"
+    # Avoid warning emoji in raw string search if printed
+    assert "Stale" in info["status"]
 
-    print("✅ Freshness Checker tests PASSED")
+    print("[SUCCESS] Freshness Checker tests PASSED")
 
 
 def test_compliance_agent_freshness_metadata():
@@ -79,9 +80,9 @@ def test_compliance_agent_freshness_metadata():
     assert validated["last_verified"] == old_date, "Missing last_verified"
     assert validated["is_stale"] == True, "Should be flagged as stale"
     assert "freshness_warning" in validated, "Missing freshness_warning"
-    assert "verified 120 days ago" in validated["freshness_warning"] or "verified" in validated["freshness_warning"]
+    assert "verified" in validated["freshness_warning"]
 
-    print("✅ Compliance Agent Freshness tests PASSED")
+    print("[SUCCESS] Compliance Agent Freshness tests PASSED")
 
 
 def test_orchestrator_routing():
@@ -100,7 +101,7 @@ def test_orchestrator_routing():
     # Default intent if LLM not available is search/details/etc.
     assert result_scheme["response_type"] == "scheme_results", f"Expected scheme_results response type, got {result_scheme['response_type']}"
 
-    print("✅ Orchestrator Routing tests PASSED")
+    print("[SUCCESS] Orchestrator Routing tests PASSED")
 
 
 if __name__ == "__main__":
@@ -113,7 +114,7 @@ if __name__ == "__main__":
     try:
         test_orchestrator_routing()
     except Exception as e:
-        print(f"⚠️ Orchestrator routing skipped/failed: {e} (ChromaDB initialization may require vector assets)")
+        print(f"[WARNING] Orchestrator routing skipped/failed: {e} (ChromaDB initialization may require vector assets)")
     print("=" * 50)
     print("ALL RUNNABLE UNIT TESTS COMPLETED SUCCESSFULLY!")
     print("=" * 50)

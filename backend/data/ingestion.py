@@ -119,7 +119,7 @@ class GoogleEmbeddingEngine:
             import google.generativeai as genai
             genai.configure(api_key=settings.google_api_key)
             self._client = genai
-            print("[Embeddings] Google Generative AI initialized ✅")
+            print("[Embeddings] Google Generative AI initialized successfully")
         except ImportError:
             raise ImportError(
                 "google-generativeai is required. "
@@ -468,4 +468,4 @@ class SchemeIngester:
 if __name__ == "__main__":
     ingester = SchemeIngester()
     count = ingester.build_index()
-    print(f"\n✅ Successfully indexed {count} chunks from {len(ingester.schemes_raw)} schemes")
+    print(f"\nSuccessfully indexed {count} chunks from {len(ingester.schemes_raw)} schemes")
