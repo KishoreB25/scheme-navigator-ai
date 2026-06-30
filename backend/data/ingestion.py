@@ -241,6 +241,18 @@ class ChromaVectorStore:
             metadata={"hnsw:space": "cosine"}
         )
 
+        # ── Self-healing: Re-index if embedding dimension mismatch ──
+        if self._collection.count() > 0:
+            try:
+                peek_data = self._collection.peek(limit=1)
+                if peek_data and peek_data.get("embeddings"):
+                    first_emb = peek_data["embeddings"][0]
+                    if len(first_emb) != 3072:
+                        print(f"[ChromaDB] Collection dimension ({len(first_emb)}) mismatch. Expected: 3072. Re-indexing...")
+                        self.delete_collection()
+            except Exception as e:
+                print(f"[ChromaDB] Preflight check error: {e}")
+
     def _generate_doc_id(self, scheme_id: str, chunk_index: int) -> str:
         """Generate a deterministic document ID to prevent duplicates.
         

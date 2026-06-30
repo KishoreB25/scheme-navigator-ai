@@ -165,7 +165,7 @@ def _vector_db_has_data() -> bool:
         vector_store = ChromaVectorStore(persist_dir=_chroma_persist_dir())
         return vector_store.has_data
     except Exception as e:
-        print(f"⚠️ Vector DB preflight failed: {e}")
+        print(f"[WARNING] Vector DB preflight failed: {e}")
         return False
 
 
@@ -175,42 +175,42 @@ def _vector_db_has_data() -> bool:
 @app.on_event("startup")
 async def startup_event():
     """Initialize vector store and agents on startup."""
-    print("🚀 PolicyGPT Bharat starting up...")
+    print("[STARTUP] PolicyGPT Bharat starting up...")
     try:
         # Initialize HuggingFace authentication if token is available
         if settings.hf_token:
             try:
                 from huggingface_hub import login
                 login(token=settings.hf_token)
-                print("✅ HuggingFace authenticated")
+                print("[HF] HuggingFace authenticated")
             except Exception as e:
-                print(f"⚠️ HuggingFace authentication warning: {e}")
+                print(f"[WARNING] HuggingFace authentication warning: {e}")
         
         # Initialize database
         orchestrator.alert_agent.initialize_db(db_service)
         if db_service.is_available:
-            print("✅ MongoDB: Connected and ready")
+            print("[DB] MongoDB: Connected and ready")
         else:
-            print("⚠️ MongoDB: Not available, using in-memory storage")
+            print("[WARNING] MongoDB: Not available, using in-memory storage")
 
         # Explicitly ingest only when the vector DB is empty.
         # This keeps normal Render restarts fast while still self-healing
         # after a fresh deploy or empty ChromaDB volume.
         if _vector_db_has_data():
-            print("✅ Vector DB already populated; skipping ingestion")
+            print("[RAG] Vector DB already populated; skipping ingestion")
         else:
-            print("📚 Vector DB empty; building ChromaDB index once...")
+            print("[RAG] Vector DB empty; building ChromaDB index once...")
             ingester = SchemeIngester()
             chunk_count = ingester.build_index()
-            print(f"✅ Ingestion completed: {chunk_count} chunks indexed")
+            print(f"[RAG] Ingestion completed: {chunk_count} chunks indexed")
 
         # Initialize vector store and agents
         orchestrator.initialize()
         status = orchestrator.vector_store_status
-        print(f"✅ Vector DB: {status['total_chunks']} chunks, {status['total_schemes']} schemes")
-        print("✅ All agents initialized successfully")
+        print(f"[RAG] Vector DB: {status['total_chunks']} chunks, {status['total_schemes']} schemes")
+        print("[STARTUP] All agents initialized successfully")
     except Exception as e:
-        print(f"⚠️ Startup warning: {e}")
+        print(f"[WARNING] Startup warning: {e}")
         print("   System will try lazy initialization on first request")
 
 
