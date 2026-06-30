@@ -126,6 +126,51 @@ class AlertAgent:
             "count": len(alerts),
         }
 
+    def schedule_alert(
+        self,
+        user_id: str,
+        scheme_id: str,
+        alert_type: str,
+        phone: str = None,
+        whatsapp_service=None,
+    ) -> Dict:
+        """
+        Schedule a scheme alert for a user.
+        Alert types: new_scheme, deadline_reminder, eligibility_change
+        Sends via WhatsApp if service is available.
+        """
+        alert = {
+            "user_id": user_id,
+            "scheme_id": scheme_id,
+            "alert_type": alert_type,
+            "phone": phone,
+            "status": "pending",
+            "created_at": datetime.utcnow().isoformat(),
+        }
+
+        # Persist to MongoDB
+        if self._db and self._db.is_available:
+            self._db.save_scheduled_alert(user_id, alert)
+
+        # Attempt immediate send via WhatsApp
+        if phone and whatsapp_service and whatsapp_service.is_available:
+            try:
+                # Look up scheme data for the alert message
+                scheme_name = scheme_id  # Will be enriched if scheme data is available
+                result = whatsapp_service.send_scheme_alert(
+                    phone=phone,
+                    scheme_name=scheme_name,
+                    summary=f"You have a {alert_type.replace('_', ' ')} for scheme {scheme_id}",
+                    apply_link="https://scheme-navigator-ai.vercel.app",
+                )
+                alert["status"] = "sent" if result.get("sent") else "failed"
+                alert["send_result"] = result
+            except Exception as e:
+                alert["status"] = "failed"
+                alert["error"] = str(e)
+
+        return alert
+
     def process(self, user_id: str = None, profile: Dict = None) -> Dict:
         """Process alerts for a user."""
         if profile and user_id:

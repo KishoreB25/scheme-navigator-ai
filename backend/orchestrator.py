@@ -137,11 +137,12 @@ class PipelineOrchestrator:
         query: str,
         user_profile: Dict = None,
         chat_history: List[Dict] = None,
+        language: str = "en",
     ) -> Dict:
         """
         Execute the intelligent pipeline:
         1. Classify intent (LLM or regex)
-        2. Route: conversational → direct LLM | scheme → full pipeline
+        2. Route: conversational → direct LLM | comparison → comparison prompt | scheme → full pipeline
         3. Return response with type indicator
         """
         self.initialize()
@@ -157,7 +158,7 @@ class PipelineOrchestrator:
 
         # ─── Route: Scheme Pipeline (full RAG) ───
         return self._run_scheme_pipeline(
-            query, user_profile, intent, chat_history
+            query, user_profile, intent, chat_history, language
         )
 
     def _run_scheme_pipeline(
@@ -166,13 +167,16 @@ class PipelineOrchestrator:
         user_profile: Dict,
         intent: str,
         chat_history: List[Dict] = None,
+        language: str = "en",
     ) -> Dict:
         """
         Full scheme pipeline:
         query → query_agent → rag_agent → eligibility_agent → guardrail → action_agent → response
         """
-        # ─── Step 1: Query Understanding Agent ───
-        query_result = self.query_agent.process(query, user_profile)
+        # ─── Step 1: Query Understanding Agent (with LLM entity fallback) ───
+        query_result = self.query_agent.process(
+            query, user_profile, llm_service=self.llm_service
+        )
         entities = query_result["entities"]
 
         # Override intent from LLM classification (already done above)
@@ -200,7 +204,7 @@ class PipelineOrchestrator:
         compliance_result = self.compliance_agent.process(
             all_schemes_with_status, query, intent,
             llm_service=self.llm_service, profile=merged_profile,
-            chat_history=chat_history,
+            chat_history=chat_history, language=language,
         )
 
         # ─── Step 5: Action Agent ───

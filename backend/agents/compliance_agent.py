@@ -86,12 +86,39 @@ class ComplianceAgent:
         validated["citation"] = f"Source: {validated['source']}"
 
         # Structured citation object for frontend rendering
+        last_verified = scheme.get("last_verified", None)
         validated["citation_detail"] = {
             "source_name": validated["name"],
             "official_url": official_link,
             "data_origin": "PolicySetu Verified Database",
-            "last_verified": scheme.get("last_verified", None),
+            "last_verified": last_verified,
         }
+
+        # ── Freshness / Staleness (Feature 7) ──
+        validated["last_verified"] = last_verified
+        validated["data_source_url"] = scheme.get("data_source_url", official_link)
+        if last_verified:
+            try:
+                from datetime import datetime
+                verified_date = datetime.strptime(last_verified, "%Y-%m-%d")
+                days_old = (datetime.utcnow() - verified_date).days
+                validated["days_since_verified"] = days_old
+                validated["is_stale"] = days_old > 90
+                if days_old > 90:
+                    validated["freshness_warning"] = (
+                        f"⚠️ Data last verified {days_old} days ago. "
+                        f"Please verify with the official website."
+                    )
+                else:
+                    validated["freshness_warning"] = None
+            except (ValueError, TypeError):
+                validated["days_since_verified"] = None
+                validated["is_stale"] = True
+                validated["freshness_warning"] = "⚠️ Verification date unknown."
+        else:
+            validated["days_since_verified"] = None
+            validated["is_stale"] = True
+            validated["freshness_warning"] = "⚠️ Verification date unknown."
 
         # Relevance score (internal use)
         validated["relevance_score"] = scheme.get("relevance_score", 0)
@@ -105,11 +132,12 @@ class ComplianceAgent:
     def generate_response_text(
         self, schemes: List[Dict], query: str, intent: str,
         llm_service=None, profile: Dict = None,
-        chat_history: List[Dict] = None,
+        chat_history: List[Dict] = None, language: str = "en",
     ) -> str:
         """
         Generate compliant response text.
         Uses LLM for natural, grounded responses. Falls back to template if LLM fails.
+        Uses comparison prompt for comparison intents.
         
         The response text accompanies scheme cards — it provides a conversational
         summary while cards show structured data.
@@ -120,13 +148,23 @@ class ComplianceAgent:
         # ── Try LLM-generated response (grounded in scheme data) ──
         if llm_service and llm_service.is_available:
             try:
-                llm_text = llm_service.generate_response(
-                    query=query,
-                    schemes=schemes,
-                    intent=intent,
-                    profile=profile,
-                    chat_history=chat_history,
-                )
+                # Use comparison prompt for comparison intent
+                if intent == "comparison" and len(schemes) >= 2:
+                    llm_text = llm_service.generate_comparison_response(
+                        query=query,
+                        schemes=schemes,
+                        profile=profile,
+                        language=language,
+                    )
+                else:
+                    llm_text = llm_service.generate_response(
+                        query=query,
+                        schemes=schemes,
+                        intent=intent,
+                        profile=profile,
+                        chat_history=chat_history,
+                        language=language,
+                    )
                 if llm_text:
                     return llm_text
             except Exception as e:
@@ -157,14 +195,14 @@ class ComplianceAgent:
     def process(
         self, eligible_schemes: List[Dict], query: str, intent: str,
         llm_service=None, profile: Dict = None,
-        chat_history: List[Dict] = None,
+        chat_history: List[Dict] = None, language: str = "en",
     ) -> Dict:
         """Process and return compliant, validated response."""
         validated_schemes = self.validate_response(eligible_schemes)
         response_text = self.generate_response_text(
             validated_schemes, query, intent,
             llm_service=llm_service, profile=profile,
-            chat_history=chat_history,
+            chat_history=chat_history, language=language,
         )
 
         return {
