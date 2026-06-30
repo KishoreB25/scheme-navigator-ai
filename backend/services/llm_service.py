@@ -18,6 +18,8 @@ from config.prompts import (
     GEMINI_RESPONSE_PROMPT,
     CONVERSATIONAL_PROMPT,
     QUERY_CLASSIFICATION_PROMPT,
+    ENTITY_EXTRACTION_PROMPT,
+    COMPARISON_PROMPT,
     FOLLOW_UP_PROMPT,
     GREETING_FALLBACK,
 )
@@ -188,6 +190,44 @@ class GeminiService:
         # Fallback: return None so caller uses regex-based classification
         return None
 
+    def extract_entities(
+        self,
+        query: str,
+        profile: Dict = None,
+    ) -> Optional[Dict]:
+        """
+        Use LLM to extract structured entities from a user query.
+        Returns dict of extracted entities, or None if LLM fails.
+        Called as fallback when regex-based extraction misses entities.
+        """
+        profile_text = json.dumps(profile, indent=2) if profile else "Not provided"
+
+        user_prompt = ENTITY_EXTRACTION_PROMPT.format(
+            query=query,
+            profile=profile_text,
+        )
+
+        text = self._call_llm(
+            system_prompt="You are an entity extractor. Respond with ONLY valid JSON.",
+            user_prompt=user_prompt,
+            temperature=0.1,
+            max_tokens=256,
+        )
+
+        if text:
+            try:
+                cleaned = text.strip()
+                if cleaned.startswith("```"):
+                    cleaned = cleaned.split("\n", 1)[-1]
+                    cleaned = cleaned.rsplit("```", 1)[0]
+                result = json.loads(cleaned.strip())
+                # Filter out null values
+                return {k: v for k, v in result.items() if v is not None and v != [] and v != ""}
+            except (json.JSONDecodeError, KeyError):
+                print(f"[LLM] Entity extraction parse failed: {text[:100]}")
+
+        return None
+
     # ── Conversational Response ───────────────────────────────────────────────
 
     def generate_conversational_response(
@@ -225,6 +265,7 @@ class GeminiService:
         intent: str,
         profile: Dict = None,
         chat_history: List[Dict] = None,
+        language: str = "en",
     ) -> Optional[str]:
         """
         Generate a grounded, citation-backed response about government schemes.
@@ -244,6 +285,38 @@ class GeminiService:
             scheme_count=len(schemes),
             scheme_context=scheme_context,
             chat_history=history_text,
+            language=language,
+        )
+
+        return self._call_llm(
+            system_prompt=SYSTEM_PROMPT,
+            user_prompt=user_prompt,
+            temperature=0.3,
+            max_tokens=1024,
+        )
+
+    def generate_comparison_response(
+        self,
+        query: str,
+        schemes: List[Dict],
+        profile: Dict = None,
+        language: str = "en",
+    ) -> Optional[str]:
+        """
+        Generate a side-by-side comparison of two or more schemes.
+        """
+        if not self._available or not self._client:
+            return None
+
+        scheme_context = self._build_scheme_context(schemes)
+        profile_text = json.dumps(profile, indent=2) if profile else "Not provided"
+
+        user_prompt = COMPARISON_PROMPT.format(
+            query=query,
+            profile=profile_text,
+            scheme_count=len(schemes),
+            scheme_context=scheme_context,
+            language=language,
         )
 
         return self._call_llm(
@@ -261,6 +334,7 @@ class GeminiService:
         schemes: List[Dict],
         chat_history: List[Dict] = None,
         profile: Dict = None,
+        language: str = "en",
     ) -> Optional[str]:
         """
         Generate a response for follow-up questions using conversation context.
@@ -275,6 +349,7 @@ class GeminiService:
             profile=profile_text,
             scheme_count=len(schemes) if schemes else 0,
             scheme_context=scheme_context,
+            language=language,
         )
 
         return self._call_llm(

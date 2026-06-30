@@ -2,12 +2,15 @@
 System prompts and response templates for PolicySetu (Scheme Navigator AI).
 
 Prompt hierarchy:
-  SYSTEM_PROMPT           — Global persona & rules (used in every LLM call)
-  QUERY_CLASSIFICATION_PROMPT — Classifies user intent before routing
-  CONVERSATIONAL_PROMPT   — Non-scheme chitchat / greetings / follow-ups
-  GEMINI_RESPONSE_PROMPT  — Grounded scheme response with citations
-  ELIGIBILITY_REASONING_PROMPT — Per-scheme eligibility assessment
-  RESPONSE_TEMPLATE       — Fallback template when LLM is unavailable
+  SYSTEM_PROMPT                 — Global persona & rules (used in every LLM call)
+  QUERY_CLASSIFICATION_PROMPT   — Classifies user intent before routing
+  ENTITY_EXTRACTION_PROMPT      — LLM-based entity extraction when regex fails
+  CONVERSATIONAL_PROMPT         — Non-scheme chitchat / greetings / follow-ups
+  GEMINI_RESPONSE_PROMPT        — Grounded scheme response with citations
+  COMPARISON_PROMPT             — Side-by-side scheme comparison
+  FOLLOW_UP_PROMPT              — Multi-turn context-aware responses
+  ELIGIBILITY_REASONING_PROMPT  — Per-scheme eligibility assessment
+  RESPONSE_TEMPLATE             — Fallback template when LLM is unavailable
 """
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -59,6 +62,38 @@ Respond with ONLY a JSON object:
 """
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# ENTITY EXTRACTION — LLM-based fallback when regex misses entities
+# ═══════════════════════════════════════════════════════════════════════════════
+
+ENTITY_EXTRACTION_PROMPT = """Extract structured entities from the following user query about Indian government schemes.
+
+User Query: "{query}"
+User Profile (existing): {profile}
+
+## Instructions:
+- Extract ONLY entities that are explicitly mentioned or strongly implied in the query.
+- Do NOT guess or fabricate values. Use null for anything not mentioned.
+- For age: look for numbers near words like "year old", "age", or standalone numbers in reasonable age ranges (1-100).
+- For income: look for amounts with ₹, Rs, "salary", "earning", "income". Convert lakhs to absolute (e.g., 2.5 lakh = 250000).
+- For state: match Indian state or UT names (case-insensitive).
+- For occupation: normalize to one of [farmer, student, housewife, unemployed, self-employed, entrepreneur, teacher, doctor, engineer, labourer, worker, artisan, fisherman, daily wage, domestic worker, vendor].
+- For scheme_name: if a specific scheme is mentioned, return its standard ID (e.g., "PM Kisan" → "PMKISAN", "Ayushman Bharat" → "ABPMJAY").
+
+Respond with ONLY a JSON object:
+{{
+  "age": <int or null>,
+  "income": <int or null>,
+  "state": "<string or null>",
+  "occupation": "<string or null>",
+  "gender": "<male|female or null>",
+  "education": "<string or null>",
+  "caste": "<string or null>",
+  "scheme_name": "<scheme_id or null>",
+  "categories": ["<category names if detectable, else empty list>"]
+}}
+"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # CONVERSATIONAL PROMPT — for greetings, follow-ups, off-topic
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -88,6 +123,7 @@ GEMINI_RESPONSE_PROMPT = """You are responding to a user query about Indian gove
 **Detected Intent**: {intent}
 **User Profile**: {profile}
 **Chat History**: {chat_history}
+**Response Language**: {language}
 
 ---
 
@@ -99,20 +135,35 @@ GEMINI_RESPONSE_PROMPT = """You are responding to a user query about Indian gove
 
 ## Response Instructions:
 1. **Use ONLY the scheme data provided above.** Do NOT add any information not present in the data.
-2. Write a helpful, conversational response in clear English.
+2. Write a helpful, conversational response. If the Response Language is not "en", respond in that language using simple, clear phrasing.
 3. Structure your response as:
-   - Brief summary (1-2 sentences)
-   - For each scheme: name, eligibility status, key benefits, and how to apply
-   - Encouraging closing note
+   - **Opening**: Brief summary of what you found (1-2 sentences)
+   - **Per Scheme**: scheme name (bold), eligibility status (✅/❌/⚠️), key benefits, and application steps
+   - **Closing**: Encouraging note + suggest next steps (e.g., "Would you like me to compare these?" or "Want the step-by-step application guide?")
 4. **MANDATORY CITATIONS**: After every factual claim, add `[Source: <official_link>]` using the scheme's official link.
-5. Use markdown formatting: **bold** for scheme names, bullet points for lists.
-6. If the user is eligible, congratulate them. If not, explain why clearly.
-7. If information is missing, say "This information is not available in my database."
+5. Use markdown: **bold** for scheme names, bullet points for lists, numbered steps for processes.
+6. If the user is eligible, congratulate them. If not, explain why clearly and suggest alternatives.
+7. If information is missing, say: "This information is not available in my database. Please check the official website."
 8. Keep the response concise — no more than 300 words.
-9. If comparing schemes, use a clear comparison format.
 
-## Citation Example:
-"**PM Kisan** provides ₹6,000 per year to eligible farmers [Source: https://pmkisan.gov.in]. You need to have less than 2 hectares of land to qualify [Source: https://pmkisan.gov.in]."
+## Few-Shot Examples:
+
+**Example 1 — Eligible farmer query:**
+User: "What schemes are there for farmers in UP?"
+Response:
+"Great news! 🎉 I found some schemes that could benefit you as a farmer:
+
+• **PM Kisan (PM-KISAN)** — You're eligible! ✅ This scheme provides ₹6,000 per year directly to your bank account in 3 installments [Source: https://pmkisan.gov.in].
+• **Kisan Credit Card (KCC)** — Potentially eligible ⚠️ (need age confirmation). Get farm credit at just 4% interest with crop insurance coverage [Source: https://pmkisan.gov.in/KCC.aspx].
+
+Would you like me to walk you through the application steps for any of these?"
+
+**Example 2 — Not eligible:**
+User: "Am I eligible for NRLM? I'm a 30 year old male."
+Response:
+"Unfortunately, **DAY-NRLM** is specifically designed for rural women from BPL families ❌ [Source: https://aajeevika.gov.in]. Since this scheme requires female applicants, it may not be applicable for you.
+
+However, you might be interested in **MGNREGA** which provides 100 days of guaranteed employment with no gender restriction [Source: https://nrega.nic.in]. Shall I check your eligibility?"
 """
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -136,6 +187,39 @@ IMPORTANT: Only use the provided data. Do not assume or hallucinate any informat
 """
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# COMPARISON PROMPT — side-by-side scheme comparison
+# ═══════════════════════════════════════════════════════════════════════════════
+
+COMPARISON_PROMPT = """Compare the following government schemes side by side for the user.
+
+**User Query**: {query}
+**User Profile**: {profile}
+**Response Language**: {language}
+
+**Schemes to Compare** ({scheme_count} scheme(s)):
+{scheme_context}
+
+## Instructions:
+1. Create a clear, structured comparison covering:
+   - **Eligibility**: Who qualifies for each scheme
+   - **Benefits**: What each scheme offers (amounts, coverage)
+   - **Application Process**: How to apply for each
+   - **Key Differences**: What sets them apart
+2. Use a comparison table or side-by-side bullet points.
+3. Recommend which scheme(s) best fit the user's profile.
+4. Include `[Source: <official_link>]` citation for every factual claim.
+5. Keep it concise but comprehensive.
+6. If the Response Language is not "en", respond in that language.
+
+## Example Format:
+| Feature | **Scheme A** | **Scheme B** |
+|---------|-------------|-------------|
+| Benefit | ₹X/year | ₹Y/year |
+| Age | 18-50 | 18-70 |
+| Premium | ₹436/yr | ₹20/yr |
+"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # FOLLOW-UP PROMPT — handles multi-turn context
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -146,6 +230,7 @@ FOLLOW_UP_PROMPT = """The user is asking a follow-up question about government s
 {chat_history}
 
 **User Profile**: {profile}
+**Response Language**: {language}
 
 **Available Scheme Data** ({scheme_count} scheme(s)):
 {scheme_context}
@@ -154,8 +239,9 @@ FOLLOW_UP_PROMPT = """The user is asking a follow-up question about government s
 1. Use the conversation history to understand what the user is referring to.
 2. If the follow-up is about a specific scheme mentioned earlier, provide more details about that scheme.
 3. If the follow-up asks for comparison or alternatives, use the available scheme data.
-4. Include citations [Source: <official_link>] for every factual claim.
+4. Include citations `[Source: <official_link>]` for every factual claim.
 5. Keep the response concise and relevant.
+6. If the Response Language is not "en", respond in that language.
 """
 
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -181,8 +181,13 @@ class QueryAgent:
 
         return "search"  # Default intent
 
-    def extract_entities(self, query: str, profile: Dict = None) -> Dict:
-        """Extract entities from query and merge with profile."""
+    def extract_entities(
+        self, query: str, profile: Dict = None, llm_service=None,
+    ) -> Dict:
+        """
+        Extract entities from query and merge with profile.
+        Uses regex as primary extractor, with LLM fallback for complex queries.
+        """
         entities = {}
 
         # Start with profile data
@@ -190,6 +195,7 @@ class QueryAgent:
             entities.update({k: v for k, v in profile.items() if v is not None})
 
         query_lower = query.lower()
+        regex_found_new = False  # Track if regex found anything beyond profile
 
         # Extract age
         age_patterns = [
@@ -203,6 +209,7 @@ class QueryAgent:
                 age = int(match.group(1))
                 if 0 < age < 120:
                     entities["age"] = age
+                    regex_found_new = True
                     break
 
         # Extract income
@@ -222,6 +229,7 @@ class QueryAgent:
                     income = income * 100000
                 if income > 120:  # Not an age
                     entities["income"] = int(income)
+                    regex_found_new = True
                     break
 
         # Extract general numbers (fallback for age/income)
@@ -231,31 +239,37 @@ class QueryAgent:
             for n in nums:
                 if "age" not in entities and 1 < n < 120:
                     entities["age"] = n
+                    regex_found_new = True
                 elif "income" not in entities and n > 1000:
                     entities["income"] = n
+                    regex_found_new = True
 
         # Extract state names
         for state in self.STATES:
             if state in query_lower:
                 entities["state"] = state.title()
+                regex_found_new = True
                 break
 
         # Extract occupation
         for occupation in self.OCCUPATIONS:
             if occupation in query_lower:
                 entities["occupation"] = occupation
+                regex_found_new = True
                 break
 
         # Extract gender
         for gender, keywords in self.GENDER_KEYWORDS.items():
             if any(kw in query_lower.split() for kw in keywords):
                 entities["gender"] = gender
+                regex_found_new = True
                 break
 
         # Extract scheme name
         for alias, scheme_id in self.SCHEME_ALIASES.items():
             if alias in query_lower:
                 entities["scheme_name"] = scheme_id
+                regex_found_new = True
                 break
 
         # Extract categories
@@ -265,13 +279,28 @@ class QueryAgent:
                 matched_categories.append(category)
         if matched_categories:
             entities["categories"] = matched_categories
+            regex_found_new = True
+
+        # ── LLM fallback: extract entities when regex found nothing new ──
+        # Only for queries with 5+ words (complex natural language)
+        if not regex_found_new and len(query.split()) >= 5 and llm_service:
+            try:
+                llm_entities = llm_service.extract_entities(query, profile)
+                if llm_entities:
+                    # Merge LLM entities (don't overwrite regex/profile values)
+                    for key, value in llm_entities.items():
+                        if key not in entities or entities[key] is None:
+                            entities[key] = value
+                    print(f"[QueryAgent] LLM entity extraction added: {list(llm_entities.keys())}")
+            except Exception as e:
+                print(f"[QueryAgent] LLM entity extraction failed: {e}")
 
         return entities
 
-    def process(self, query: str, profile: Dict = None) -> Dict:
+    def process(self, query: str, profile: Dict = None, llm_service=None) -> Dict:
         """Process query and return structured data."""
         intent = self.extract_intent(query)
-        entities = self.extract_entities(query, profile)
+        entities = self.extract_entities(query, profile, llm_service=llm_service)
 
         return {
             "original_query": query,
