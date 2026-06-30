@@ -36,12 +36,11 @@ class WhatsAppService:
                 settings.twilio_auth_token,
             )
             self._available = True
-            print("[WhatsApp] Twilio client initialized successfully ✅")
+            print("[WhatsApp] Twilio client initialized successfully")
         except ImportError:
             print("[WhatsApp] twilio package not installed. Run: pip install twilio")
         except Exception as e:
             print(f"[WhatsApp] Failed to initialize Twilio: {e}")
-
     @property
     def is_available(self) -> bool:
         return self._available

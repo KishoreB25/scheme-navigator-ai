@@ -43,7 +43,6 @@ class GeminiService:
         try:
             self._client = Groq(api_key=api_key)
             self._available = True
-            print(f"[LLM] Groq ({settings.groq_model}) initialized successfully ✅")
         except Exception as e:
             print(f"[LLM] Failed to initialize Groq: {e}")
             self._available = False
