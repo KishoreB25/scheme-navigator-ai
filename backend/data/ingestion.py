@@ -6,7 +6,8 @@ Handles: JSON loading → Text chunking → Embedding → ChromaDB vector store
 ChromaDB provides built-in persistence, metadata filtering, and collection management
 without requiring manual index save/load or pickle-based metadata serialization.
 """
-
+# pyrefly: ignore [missing-import]
+import chromadb
 import json
 import os
 import hashlib
@@ -230,7 +231,7 @@ class ChromaVectorStore:
                          Defaults to 'data/chroma_db' relative to this file.
             collection_name: Name of the ChromaDB collection.
         """
-        import chromadb
+        
 
         self.persist_dir = persist_dir or os.path.join(
             os.path.dirname(__file__), "chroma_db"
@@ -383,7 +384,7 @@ class ChromaVectorStore:
 
     def delete_collection(self):
         """Delete the entire collection. Useful for re-indexing from scratch."""
-        import chromadb
+        
 
         self._client.delete_collection(self.collection_name)
         # Recreate empty collection
