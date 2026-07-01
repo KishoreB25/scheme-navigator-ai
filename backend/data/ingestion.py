@@ -10,8 +10,15 @@ without requiring manual index save/load or pickle-based metadata serialization.
 import json
 import os
 import hashlib
+import sys
 import numpy as np
 from typing import List, Dict, Optional
+
+# Ensure parent directory (backend/) is in sys.path when running this file directly
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
 
 
 class TextChunker:
