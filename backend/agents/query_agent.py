@@ -172,12 +172,23 @@ class QueryAgent:
         pass
 
     def extract_intent(self, query: str) -> str:
-        """Extract intent from query with priority ordering."""
+        """Extract intent from query with priority ordering using word boundaries."""
         query_lower = query.lower()
 
+        # Tokenize query into words (removing basic punctuation)
+        words = set(re.findall(r"\b\w+\b", query_lower))
+
         for intent, keywords in self.INTENTS.items():
-            if any(keyword in query_lower for keyword in keywords):
-                return intent
+            for keyword in keywords:
+                # If the keyword is a single word, check if it exists in the tokenized words set
+                if " " not in keyword:
+                    if keyword in words:
+                        return intent
+                else:
+                    # If keyword contains spaces (e.g., "good morning"), use regex word boundaries
+                    pattern = r"\b" + re.escape(keyword) + r"\b"
+                    if re.search(pattern, query_lower):
+                        return intent
 
         return "search"  # Default intent
 
@@ -246,28 +257,28 @@ class QueryAgent:
 
         # Extract state names
         for state in self.STATES:
-            if state in query_lower:
+            if re.search(r"\b" + re.escape(state) + r"\b", query_lower):
                 entities["state"] = state.title()
                 regex_found_new = True
                 break
 
         # Extract occupation
         for occupation in self.OCCUPATIONS:
-            if occupation in query_lower:
+            if re.search(r"\b" + re.escape(occupation) + r"\b", query_lower):
                 entities["occupation"] = occupation
                 regex_found_new = True
                 break
 
         # Extract gender
         for gender, keywords in self.GENDER_KEYWORDS.items():
-            if any(kw in query_lower.split() for kw in keywords):
+            if any(re.search(r"\b" + re.escape(kw) + r"\b", query_lower) for kw in keywords):
                 entities["gender"] = gender
                 regex_found_new = True
                 break
 
         # Extract scheme name
         for alias, scheme_id in self.SCHEME_ALIASES.items():
-            if alias in query_lower:
+            if re.search(r"\b" + re.escape(alias) + r"\b", query_lower):
                 entities["scheme_name"] = scheme_id
                 regex_found_new = True
                 break
