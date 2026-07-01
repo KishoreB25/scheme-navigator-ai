@@ -13,6 +13,16 @@ class QueryAgent:
 
     # Intent keywords ordered by priority (more specific first)
     INTENTS = {
+        "greeting": [
+            "hi", "hello", "hey", "namaste", "namaskar", "good morning",
+            "good evening", "good afternoon", "thanks", "thank you",
+            "bye", "goodbye", "ok", "okay",
+        ],
+        "follow_up": [
+            "tell me more", "more details", "what about", "and for",
+            "what else", "anything else", "continue", "go on",
+            "elaborate", "explain more", "how about",
+        ],
         "eligibility": [
             "eligible", "eligibility", "qualify", "am i", "do i", "can i",
             "qualify for", "am i eligible", "check eligibility"
@@ -162,17 +172,33 @@ class QueryAgent:
         pass
 
     def extract_intent(self, query: str) -> str:
-        """Extract intent from query with priority ordering."""
+        """Extract intent from query with priority ordering using word boundaries."""
         query_lower = query.lower()
 
+        # Tokenize query into words (removing basic punctuation)
+        words = set(re.findall(r"\b\w+\b", query_lower))
+
         for intent, keywords in self.INTENTS.items():
-            if any(keyword in query_lower for keyword in keywords):
-                return intent
+            for keyword in keywords:
+                # If the keyword is a single word, check if it exists in the tokenized words set
+                if " " not in keyword:
+                    if keyword in words:
+                        return intent
+                else:
+                    # If keyword contains spaces (e.g., "good morning"), use regex word boundaries
+                    pattern = r"\b" + re.escape(keyword) + r"\b"
+                    if re.search(pattern, query_lower):
+                        return intent
 
         return "search"  # Default intent
 
-    def extract_entities(self, query: str, profile: Dict = None) -> Dict:
-        """Extract entities from query and merge with profile."""
+    def extract_entities(
+        self, query: str, profile: Dict = None, llm_service=None,
+    ) -> Dict:
+        """
+        Extract entities from query and merge with profile.
+        Uses regex as primary extractor, with LLM fallback for complex queries.
+        """
         entities = {}
 
         # Start with profile data
@@ -180,6 +206,7 @@ class QueryAgent:
             entities.update({k: v for k, v in profile.items() if v is not None})
 
         query_lower = query.lower()
+        regex_found_new = False  # Track if regex found anything beyond profile
 
         # Extract age
         age_patterns = [
@@ -193,6 +220,7 @@ class QueryAgent:
                 age = int(match.group(1))
                 if 0 < age < 120:
                     entities["age"] = age
+                    regex_found_new = True
                     break
 
         # Extract income
@@ -212,6 +240,7 @@ class QueryAgent:
                     income = income * 100000
                 if income > 120:  # Not an age
                     entities["income"] = int(income)
+                    regex_found_new = True
                     break
 
         # Extract general numbers (fallback for age/income)
@@ -221,31 +250,37 @@ class QueryAgent:
             for n in nums:
                 if "age" not in entities and 1 < n < 120:
                     entities["age"] = n
+                    regex_found_new = True
                 elif "income" not in entities and n > 1000:
                     entities["income"] = n
+                    regex_found_new = True
 
         # Extract state names
         for state in self.STATES:
-            if state in query_lower:
+            if re.search(r"\b" + re.escape(state) + r"\b", query_lower):
                 entities["state"] = state.title()
+                regex_found_new = True
                 break
 
         # Extract occupation
         for occupation in self.OCCUPATIONS:
-            if occupation in query_lower:
+            if re.search(r"\b" + re.escape(occupation) + r"\b", query_lower):
                 entities["occupation"] = occupation
+                regex_found_new = True
                 break
 
         # Extract gender
         for gender, keywords in self.GENDER_KEYWORDS.items():
-            if any(kw in query_lower.split() for kw in keywords):
+            if any(re.search(r"\b" + re.escape(kw) + r"\b", query_lower) for kw in keywords):
                 entities["gender"] = gender
+                regex_found_new = True
                 break
 
         # Extract scheme name
         for alias, scheme_id in self.SCHEME_ALIASES.items():
-            if alias in query_lower:
+            if re.search(r"\b" + re.escape(alias) + r"\b", query_lower):
                 entities["scheme_name"] = scheme_id
+                regex_found_new = True
                 break
 
         # Extract categories
@@ -255,13 +290,28 @@ class QueryAgent:
                 matched_categories.append(category)
         if matched_categories:
             entities["categories"] = matched_categories
+            regex_found_new = True
+
+        # ── LLM fallback: extract entities when regex found nothing new ──
+        # Only for queries with 5+ words (complex natural language)
+        if not regex_found_new and len(query.split()) >= 5 and llm_service:
+            try:
+                llm_entities = llm_service.extract_entities(query, profile)
+                if llm_entities:
+                    # Merge LLM entities (don't overwrite regex/profile values)
+                    for key, value in llm_entities.items():
+                        if key not in entities or entities[key] is None:
+                            entities[key] = value
+                    print(f"[QueryAgent] LLM entity extraction added: {list(llm_entities.keys())}")
+            except Exception as e:
+                print(f"[QueryAgent] LLM entity extraction failed: {e}")
 
         return entities
 
-    def process(self, query: str, profile: Dict = None) -> Dict:
+    def process(self, query: str, profile: Dict = None, llm_service=None) -> Dict:
         """Process query and return structured data."""
         intent = self.extract_intent(query)
-        entities = self.extract_entities(query, profile)
+        entities = self.extract_entities(query, profile, llm_service=llm_service)
 
         return {
             "original_query": query,

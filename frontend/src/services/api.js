@@ -53,7 +53,8 @@ const transformSchemeResponse = (backendSchemes) => {
     documents_required: scheme.documents_required || scheme.required_documents || [],
     application_steps: scheme.application_steps || [],
     official_link: scheme.official_link || scheme.source || '',
-    citation: scheme.citation || `Source: ${scheme.official_link || 'PolicyGPT Bharat Database'}`,
+    citation: scheme.citation || `Source: ${scheme.official_link || 'PolicySetu Database'}`,
+    citation_detail: scheme.citation_detail || null,
     relevance_score: scheme.relevance_score || 0,
   }));
 };
@@ -77,6 +78,7 @@ export const sendMessage = async (text, profile, userId = null, sessionId = null
       eligible_count: response.data.eligible_count,
       total_schemes: response.data.total_schemes,
       compliance_verified: response.data.compliance_verified,
+      response_type: response.data.response_type || 'scheme_results',
     };
   } catch (error) {
     console.error('API Error:', error.message);

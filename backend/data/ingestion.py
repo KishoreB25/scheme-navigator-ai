@@ -6,12 +6,20 @@ Handles: JSON loading → Text chunking → Embedding → ChromaDB vector store
 ChromaDB provides built-in persistence, metadata filtering, and collection management
 without requiring manual index save/load or pickle-based metadata serialization.
 """
-
+# pyrefly: ignore [missing-import]
+import chromadb
 import json
 import os
 import hashlib
+import sys
 import numpy as np
 from typing import List, Dict, Optional
+
+# Ensure parent directory (backend/) is in sys.path when running this file directly
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
 
 
 class TextChunker:
@@ -119,7 +127,7 @@ class GoogleEmbeddingEngine:
             import google.generativeai as genai
             genai.configure(api_key=settings.google_api_key)
             self._client = genai
-            print("[Embeddings] Google Generative AI initialized ✅")
+            print("[Embeddings] Google Generative AI initialized successfully")
         except ImportError:
             raise ImportError(
                 "google-generativeai is required. "
@@ -223,7 +231,7 @@ class ChromaVectorStore:
                          Defaults to 'data/chroma_db' relative to this file.
             collection_name: Name of the ChromaDB collection.
         """
-        import chromadb
+        
 
         self.persist_dir = persist_dir or os.path.join(
             os.path.dirname(__file__), "chroma_db"
@@ -240,6 +248,18 @@ class ChromaVectorStore:
             name=self.collection_name,
             metadata={"hnsw:space": "cosine"}
         )
+
+        # ── Self-healing: Re-index if embedding dimension mismatch ──
+        if self._collection.count() > 0:
+            try:
+                peek_data = self._collection.peek(limit=1)
+                if peek_data and peek_data.get("embeddings") is not None and len(peek_data["embeddings"]) > 0:
+                    first_emb = peek_data["embeddings"][0]
+                    if len(first_emb) != 3072:
+                        print(f"[ChromaDB] Collection dimension ({len(first_emb)}) mismatch. Expected: 3072. Re-indexing...")
+                        self.delete_collection()
+            except Exception as e:
+                print(f"[ChromaDB] Preflight check error: {e}")
 
     def _generate_doc_id(self, scheme_id: str, chunk_index: int) -> str:
         """Generate a deterministic document ID to prevent duplicates.
@@ -364,7 +384,7 @@ class ChromaVectorStore:
 
     def delete_collection(self):
         """Delete the entire collection. Useful for re-indexing from scratch."""
-        import chromadb
+        
 
         self._client.delete_collection(self.collection_name)
         # Recreate empty collection
@@ -468,4 +488,4 @@ class SchemeIngester:
 if __name__ == "__main__":
     ingester = SchemeIngester()
     count = ingester.build_index()
-    print(f"\n✅ Successfully indexed {count} chunks from {len(ingester.schemes_raw)} schemes")
+    print(f"\nSuccessfully indexed {count} chunks from {len(ingester.schemes_raw)} schemes")

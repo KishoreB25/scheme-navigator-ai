@@ -2,6 +2,11 @@
 Compliance Guardrail Agent
 CRITICAL: Ensures all responses use ONLY retrieved data with proper citations.
 Blocks hallucinations and enforces mandatory output structure.
+
+Changes:
+  - Restored LLM response generation (was previously bypassed — only template)
+  - Added structured citation objects for grounding
+  - LLM text + scheme cards now coexist in the response
 """
 
 from typing import Dict, List
@@ -9,7 +14,7 @@ from config.prompts import MISSING_INFO_RESPONSE, NO_RESULTS_RESPONSE
 
 
 class ComplianceAgent:
-    """Strict compliance guardrail enforcer for PolicyGPT Bharat."""
+    """Strict compliance guardrail enforcer for PolicySetu."""
 
     # Mandatory fields every scheme response must include
     REQUIRED_FIELDS = [
@@ -25,6 +30,7 @@ class ComplianceAgent:
         """
         Validate a single scheme response ensuring all mandatory fields exist.
         Replaces any missing field with the compliance-safe missing info message.
+        Builds structured citation for grounding.
         """
         validated = {
             "id": scheme.get("scheme_id", scheme.get("id", "N/A")),
@@ -73,10 +79,46 @@ class ComplianceAgent:
         else:
             validated["application_steps"] = [MISSING_INFO_RESPONSE]
 
-        # Citation / source
-        validated["official_link"] = scheme.get("official_link", MISSING_INFO_RESPONSE)
-        validated["source"] = scheme.get("official_link", "PolicyGPT Bharat Database")
+        # ── Citation / Source (structured for grounding) ──
+        official_link = scheme.get("official_link", MISSING_INFO_RESPONSE)
+        validated["official_link"] = official_link
+        validated["source"] = official_link if official_link != MISSING_INFO_RESPONSE else "PolicySetu Database"
         validated["citation"] = f"Source: {validated['source']}"
+
+        # Structured citation object for frontend rendering
+        last_verified = scheme.get("last_verified", None)
+        validated["citation_detail"] = {
+            "source_name": validated["name"],
+            "official_url": official_link,
+            "data_origin": "PolicySetu Verified Database",
+            "last_verified": last_verified,
+        }
+
+        # ── Freshness / Staleness (Feature 7) ──
+        validated["last_verified"] = last_verified
+        validated["data_source_url"] = scheme.get("data_source_url", official_link)
+        if last_verified:
+            try:
+                from datetime import datetime
+                verified_date = datetime.strptime(last_verified, "%Y-%m-%d")
+                days_old = (datetime.utcnow() - verified_date).days
+                validated["days_since_verified"] = days_old
+                validated["is_stale"] = days_old > 90
+                if days_old > 90:
+                    validated["freshness_warning"] = (
+                        f"⚠️ Data last verified {days_old} days ago. "
+                        f"Please verify with the official website."
+                    )
+                else:
+                    validated["freshness_warning"] = None
+            except (ValueError, TypeError):
+                validated["days_since_verified"] = None
+                validated["is_stale"] = True
+                validated["freshness_warning"] = "⚠️ Verification date unknown."
+        else:
+            validated["days_since_verified"] = None
+            validated["is_stale"] = True
+            validated["freshness_warning"] = "⚠️ Verification date unknown."
 
         # Relevance score (internal use)
         validated["relevance_score"] = scheme.get("relevance_score", 0)
@@ -90,16 +132,45 @@ class ComplianceAgent:
     def generate_response_text(
         self, schemes: List[Dict], query: str, intent: str,
         llm_service=None, profile: Dict = None,
+        chat_history: List[Dict] = None, language: str = "en",
     ) -> str:
         """
         Generate compliant response text.
-        Returns a brief summary only - detailed scheme info shown in cards below.
+        Uses LLM for natural, grounded responses. Falls back to template if LLM fails.
+        Uses comparison prompt for comparison intents.
+        
+        The response text accompanies scheme cards — it provides a conversational
+        summary while cards show structured data.
         """
         if not schemes:
             return NO_RESULTS_RESPONSE
 
-        # Always use template (brief summary) instead of LLM for cleaner UI
-        # Cards will display all detailed information
+        # ── Try LLM-generated response (grounded in scheme data) ──
+        if llm_service and llm_service.is_available:
+            try:
+                # Use comparison prompt for comparison intent
+                if intent == "comparison" and len(schemes) >= 2:
+                    llm_text = llm_service.generate_comparison_response(
+                        query=query,
+                        schemes=schemes,
+                        profile=profile,
+                        language=language,
+                    )
+                else:
+                    llm_text = llm_service.generate_response(
+                        query=query,
+                        schemes=schemes,
+                        intent=intent,
+                        profile=profile,
+                        chat_history=chat_history,
+                        language=language,
+                    )
+                if llm_text:
+                    return llm_text
+            except Exception as e:
+                print(f"[Compliance] LLM response generation failed: {e}")
+
+        # ── Fallback: template response ──
         return self._template_response(schemes, intent)
 
     def _template_response(self, schemes: List[Dict], intent: str) -> str:
@@ -108,19 +179,30 @@ class ComplianceAgent:
         total = len(schemes)
         
         if eligible_count > 0:
-            return f"Great news! You are eligible for {eligible_count} scheme(s). Check out the details below."
+            return (
+                f"Great news! 🎉 Based on your profile, you appear to be eligible for "
+                f"**{eligible_count} scheme(s)** out of {total} found. "
+                f"Check the detailed cards below for eligibility breakdown, "
+                f"required documents, and how to apply."
+            )
         else:
-            return f"I found {total} relevant scheme(s) for you. Check your eligibility details below."
+            return (
+                f"I found **{total} relevant scheme(s)** for your query. "
+                f"Review the eligibility details in the cards below — "
+                f"you may need to provide more profile information for a definitive check."
+            )
 
     def process(
         self, eligible_schemes: List[Dict], query: str, intent: str,
         llm_service=None, profile: Dict = None,
+        chat_history: List[Dict] = None, language: str = "en",
     ) -> Dict:
         """Process and return compliant, validated response."""
         validated_schemes = self.validate_response(eligible_schemes)
         response_text = self.generate_response_text(
             validated_schemes, query, intent,
             llm_service=llm_service, profile=profile,
+            chat_history=chat_history, language=language,
         )
 
         return {

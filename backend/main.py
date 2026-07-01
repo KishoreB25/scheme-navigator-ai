@@ -5,7 +5,7 @@ AI-powered Government Scheme Advisory System
 Architecture: User → API → Orchestrator → Agents → Vector DB → Response
 """
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -13,11 +13,26 @@ from typing import Optional, Dict, List
 import os
 import uuid
 
+try:
+    from slowapi import Limiter, _rate_limit_exceeded_handler
+    from slowapi.util import get_remote_address
+    from slowapi.errors import RateLimitExceeded
+    SLOWAPI_AVAILABLE = True
+except ImportError:
+    SLOWAPI_AVAILABLE = False
+    print("[Security] slowapi not installed — rate limiting disabled. Run: pip install slowapi")
+
 from config.settings import settings
 from orchestrator import PipelineOrchestrator
 from data.ingestion import ChromaVectorStore, SchemeIngester
 from services.database import db_service
 from services.firebase_service import FirebaseService
+from services.freshness_checker import FreshnessChecker
+from services.whatsapp_service import WhatsAppService
+from middleware import (
+    sanitize_input,
+    RequestLoggingMiddleware,
+)
 
 
 # ============= Pydantic Models =============
@@ -39,6 +54,7 @@ class ChatRequest(BaseModel):
     profile: Optional[UserProfile] = None
     user_id: Optional[str] = None
     session_id: Optional[str] = None
+    language: Optional[str] = "en"
 
 
 class ProfileRequest(BaseModel):
@@ -64,6 +80,7 @@ class ChatResponse(BaseModel):
     eligible_count: int
     total_schemes: int
     compliance_verified: bool
+    response_type: str = "scheme_results"  # "conversational" | "scheme_results"
 
 
 # ============= Firebase Auth Models =============
@@ -103,7 +120,19 @@ app = FastAPI(
     ),
 )
 
-# ============= CORS =============
+# ============= Rate Limiting =============
+if SLOWAPI_AVAILABLE:
+    limiter = Limiter(key_func=get_remote_address)
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+else:
+    limiter = None
+
+# ============= Middleware =============
+# Request logging
+app.add_middleware(RequestLoggingMiddleware)
+
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -118,6 +147,12 @@ orchestrator = PipelineOrchestrator()
 # ============= Firebase Service =============
 firebase_service = FirebaseService()
 
+# ============= Freshness Checker =============
+freshness_checker = FreshnessChecker(db_service=db_service)
+
+# ============= WhatsApp Service =============
+whatsapp_service = WhatsAppService()
+
 
 def _chroma_persist_dir() -> str:
     """Return the on-disk ChromaDB directory used by the backend."""
@@ -130,7 +165,7 @@ def _vector_db_has_data() -> bool:
         vector_store = ChromaVectorStore(persist_dir=_chroma_persist_dir())
         return vector_store.has_data
     except Exception as e:
-        print(f"⚠️ Vector DB preflight failed: {e}")
+        print(f"[WARNING] Vector DB preflight failed: {e}")
         return False
 
 
@@ -140,42 +175,42 @@ def _vector_db_has_data() -> bool:
 @app.on_event("startup")
 async def startup_event():
     """Initialize vector store and agents on startup."""
-    print("🚀 PolicyGPT Bharat starting up...")
+    print("[STARTUP] PolicyGPT Bharat starting up...")
     try:
         # Initialize HuggingFace authentication if token is available
         if settings.hf_token:
             try:
                 from huggingface_hub import login
                 login(token=settings.hf_token)
-                print("✅ HuggingFace authenticated")
+                print("[HF] HuggingFace authenticated")
             except Exception as e:
-                print(f"⚠️ HuggingFace authentication warning: {e}")
+                print(f"[WARNING] HuggingFace authentication warning: {e}")
         
         # Initialize database
         orchestrator.alert_agent.initialize_db(db_service)
         if db_service.is_available:
-            print("✅ MongoDB: Connected and ready")
+            print("[DB] MongoDB: Connected and ready")
         else:
-            print("⚠️ MongoDB: Not available, using in-memory storage")
+            print("[WARNING] MongoDB: Not available, using in-memory storage")
 
         # Explicitly ingest only when the vector DB is empty.
         # This keeps normal Render restarts fast while still self-healing
         # after a fresh deploy or empty ChromaDB volume.
         if _vector_db_has_data():
-            print("✅ Vector DB already populated; skipping ingestion")
+            print("[RAG] Vector DB already populated; skipping ingestion")
         else:
-            print("📚 Vector DB empty; building ChromaDB index once...")
+            print("[RAG] Vector DB empty; building ChromaDB index once...")
             ingester = SchemeIngester()
             chunk_count = ingester.build_index()
-            print(f"✅ Ingestion completed: {chunk_count} chunks indexed")
+            print(f"[RAG] Ingestion completed: {chunk_count} chunks indexed")
 
         # Initialize vector store and agents
         orchestrator.initialize()
         status = orchestrator.vector_store_status
-        print(f"✅ Vector DB: {status['total_chunks']} chunks, {status['total_schemes']} schemes")
-        print("✅ All agents initialized successfully")
+        print(f"[RAG] Vector DB: {status['total_chunks']} chunks, {status['total_schemes']} schemes")
+        print("[STARTUP] All agents initialized successfully")
     except Exception as e:
-        print(f"⚠️ Startup warning: {e}")
+        print(f"[WARNING] Startup warning: {e}")
         print("   System will try lazy initialization on first request")
 
 
@@ -381,7 +416,8 @@ async def create_guest_profile(request: GuestProfileRequest):
 async def chat(request: ChatRequest):
     """
     Main chat endpoint.
-    Pipeline: Query Agent → RAG Agent → Eligibility Agent → Compliance Agent → Action Agent → Response
+    Pipeline: Intent Classification → Route → (Conversational | Full Scheme Pipeline) → Response
+    Passes chat history for multi-turn context.
     Saves chat history to MongoDB if available.
     """
     try:
@@ -389,14 +425,34 @@ async def chat(request: ChatRequest):
         user_id = request.user_id or str(uuid.uuid4())
         profile_dict = request.profile.model_dump(exclude_none=True) if request.profile else {}
 
-        # Run the full pipeline
-        result = orchestrator.run_pipeline(request.query, profile_dict)
+        # Sanitize user input
+        query = sanitize_input(request.query)
+        # ── Fetch recent chat history for multi-turn context ──
+        chat_history = []
+        if db_service.is_available:
+            try:
+                raw_history = db_service.get_chat_history(user_id, session_id, limit=6)
+                chat_history = [
+                    {"role": msg.get("role", "user"), "content": msg.get("content", "")}
+                    for msg in raw_history
+                    if msg.get("content")
+                ]
+            except Exception as hist_err:
+                print(f"[Chat] History fetch warning: {hist_err}")
 
-        # Save to MongoDB if available
+        # ── Run the intelligent pipeline (with routing) ──
+        result = orchestrator.run_pipeline(
+            query=query,
+            user_profile=profile_dict,
+            chat_history=chat_history,
+            language=request.language or "en",
+        )
+
+        # ── Save messages to MongoDB ──
         if db_service.is_available:
             user_message = {
                 "role": "user",
-                "content": request.query,
+                "content": query,
                 "profile": profile_dict,
             }
             db_service.save_chat_message(user_id, session_id, user_message)
@@ -410,6 +466,7 @@ async def chat(request: ChatRequest):
                 "eligible_count": result["eligible_count"],
                 "total_schemes": result["total_schemes"],
                 "compliance_verified": result["compliance_verified"],
+                "response_type": result.get("response_type", "scheme_results"),
             }
             db_service.save_chat_message(user_id, session_id, assistant_message)
 
@@ -421,6 +478,7 @@ async def chat(request: ChatRequest):
             eligible_count=result["eligible_count"],
             total_schemes=result["total_schemes"],
             compliance_verified=result["compliance_verified"],
+            response_type=result.get("response_type", "scheme_results"),
         )
 
     except Exception as e:
@@ -548,32 +606,231 @@ async def get_missed_benefits_post(request: UserProfile):
 
 
 @app.post("/whatsapp")
-async def whatsapp_webhook(message: Dict):
+async def whatsapp_webhook(request: Request):
     """
-    WhatsApp integration endpoint (Twilio/webhook).
-    Accepts {"text": "...", "profile": {...}} and returns scheme info.
+    WhatsApp webhook endpoint.
+    Handles both:
+    - Twilio-formatted incoming messages (form-encoded: Body, From, To)
+    - Direct JSON format: {"text": "...", "from": "+91...", "profile": {...}}
     """
     try:
-        query = message.get("text", "")
-        profile = message.get("profile", {})
+        content_type = request.headers.get("content-type", "")
 
-        if not query:
+        if "application/x-www-form-urlencoded" in content_type:
+            # Twilio webhook format
+            form = await request.form()
+            message_body = form.get("Body", "")
+            from_phone = form.get("From", "")
+        else:
+            # JSON format (direct API call)
+            data = await request.json()
+            message_body = data.get("text", "")
+            from_phone = data.get("from", "")
+
+        if not message_body:
             return {"whatsapp_response": "Please send a valid query about government schemes."}
 
-        result = orchestrator.run_pipeline(query, profile)
+        # Sanitize input
+        message_body = sanitize_input(message_body)
 
-        # Format for WhatsApp (text-only)
-        wa_text = result["response_text"] + "\n\n"
-        for scheme in result["schemes"][:3]:
-            wa_text += f"📋 *{scheme.get('name', '')}*\n"
-            wa_text += f"  Status: {scheme.get('eligibility_status', 'N/A')}\n"
-            wa_text += f"  Link: {scheme.get('official_link', 'N/A')}\n\n"
+        # Process through WhatsApp service
+        response_text = whatsapp_service.handle_incoming(
+            message_body=message_body,
+            from_phone=from_phone,
+            orchestrator=orchestrator,
+        )
+
+        # If Twilio format, return TwiML
+        if "application/x-www-form-urlencoded" in content_type:
+            from fastapi.responses import Response
+            twiml = (
+                '<?xml version="1.0" encoding="UTF-8"?>'
+                '<Response><Message>'
+                f'{response_text}'
+                '</Message></Response>'
+            )
+            return Response(content=twiml, media_type="application/xml")
 
         return {
-            "whatsapp_response": wa_text,
-            "schemes_count": result["total_schemes"],
+            "whatsapp_response": response_text,
         }
 
+    except Exception as e:
+        print(f"[WhatsApp] Webhook error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class AlertSubscribeRequest(BaseModel):
+    phone: str
+    user_id: Optional[str] = None
+    alert_types: List[str] = ["new_schemes", "deadline_reminders"]
+
+
+@app.post("/alerts/subscribe")
+async def subscribe_alerts(request: AlertSubscribeRequest):
+    """
+    Subscribe a user's phone number for WhatsApp scheme alerts.
+    Alert types: new_schemes, deadline_reminders, eligibility_changes
+    """
+    try:
+        phone = request.phone.strip()
+        if not phone or len(phone) < 10:
+            raise HTTPException(status_code=400, detail="Invalid phone number")
+
+        subscription = {
+            "phone": phone,
+            "user_id": request.user_id,
+            "alert_types": request.alert_types,
+            "subscribed": True,
+        }
+
+        # Save subscription to MongoDB
+        if db_service.is_available:
+            db_service.save_alert_subscription(phone, subscription)
+
+        # Send confirmation via WhatsApp
+        if whatsapp_service.is_available:
+            whatsapp_service.send_message(
+                phone,
+                "🔔 *PolicySetu Alert Subscription*\n\n"
+                "You're now subscribed to scheme alerts! "
+                "You'll receive notifications about:\n"
+                + "\n".join(f"• {t.replace('_', ' ').title()}" for t in request.alert_types)
+                + "\n\n_Reply STOP to unsubscribe._",
+            )
+
+        return {
+            "subscribed": True,
+            "phone": phone,
+            "alert_types": request.alert_types,
+            "message": "Successfully subscribed to alerts",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class AlertSendRequest(BaseModel):
+    phone: str
+    user_id: Optional[str] = None
+
+
+@app.post("/alerts/send")
+async def send_scheme_alerts(request: AlertSendRequest):
+    """
+    Trigger scheme alerts for a specific user.
+    Runs the missed benefits detector and sends results via WhatsApp.
+    """
+    try:
+        # Get user profile from DB
+        profile = {}
+        if request.user_id and db_service.is_available:
+            user = db_service.get_user_by_firebase_uid(request.user_id)
+            if user:
+                profile = user.get("profile", {})
+
+        # Run missed benefits detection
+        result = orchestrator.detect_missed_benefits(profile)
+
+        if result["count"] > 0 and whatsapp_service.is_available:
+            whatsapp_service.send_missed_benefits(
+                phone=request.phone,
+                schemes=result["missed_schemes"],
+            )
+
+        return {
+            "sent": result["count"] > 0 and whatsapp_service.is_available,
+            "schemes_found": result["count"],
+            "message": result["message"],
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============= Admin / Freshness Endpoints =============
+
+
+@app.get("/admin/freshness-report")
+async def get_freshness_report(
+    api_key: str = Query(..., description="Admin API key"),
+    check_links: bool = Query(False, description="Also check link health (slow)"),
+):
+    """
+    Admin endpoint: Get freshness report for all schemes.
+    Reports stale data (>90 days old) and optionally checks link health.
+    Protected with a simple API key.
+    """
+    # Simple API key protection
+    expected_key = settings.admin_api_key
+    if not expected_key or api_key != expected_key:
+        raise HTTPException(status_code=403, detail="Invalid admin API key")
+
+    try:
+        schemes = orchestrator.schemes_db
+
+        if check_links:
+            # Full report with link health checks (slow — ~1s per scheme)
+            report = freshness_checker.generate_freshness_report(schemes)
+        else:
+            # Quick report: staleness only
+            stale = freshness_checker.flag_stale_schemes(schemes)
+            report = {
+                "total_schemes": len(schemes),
+                "stale_count": len(stale),
+                "stale_schemes": stale,
+                "generated_at": __import__("datetime").datetime.utcnow().isoformat(),
+            }
+
+        return report
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/schemes/{scheme_id}/guide")
+async def get_scheme_guide(scheme_id: str):
+    """
+    Get full application guide for a specific scheme.
+    Returns structured data: steps, documents, deadlines, helpline, and freshness.
+    """
+    try:
+        schemes = orchestrator.schemes_db
+        scheme = next(
+            (s for s in schemes if s.get("scheme_id", "").upper() == scheme_id.upper()),
+            None,
+        )
+        if not scheme:
+            raise HTTPException(status_code=404, detail=f"Scheme '{scheme_id}' not found")
+
+        # Build guide from action agent
+        action_info = orchestrator.action_agent.get_action_info(scheme)
+
+        # Add freshness info
+        staleness = freshness_checker.get_staleness_info(scheme)
+
+        return {
+            "scheme_id": scheme.get("scheme_id"),
+            "scheme_name": scheme.get("scheme_name"),
+            "category": scheme.get("category"),
+            "description": scheme.get("description"),
+            "eligibility": scheme.get("eligibility"),
+            "benefits": scheme.get("benefits"),
+            "application_steps": action_info["application_steps"],
+            "required_documents": action_info["required_documents"],
+            "official_link": action_info["official_link"],
+            "ministry": action_info.get("ministry", scheme.get("ministry", "")),
+            "launch_year": scheme.get("launch_year"),
+            "estimated_time": scheme.get("estimated_time", "2-4 weeks for processing"),
+            "deadline_info": scheme.get("deadline_info", "Ongoing — no fixed deadline"),
+            "helpline_number": scheme.get("helpline_number", "Not available"),
+            "freshness": staleness,
+        }
+
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

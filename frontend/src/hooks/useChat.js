@@ -20,6 +20,7 @@ const toMessage = (message) => ({
   eligible_count: message.eligible_count,
   total_schemes: message.total_schemes,
   compliance_verified: message.compliance_verified,
+  response_type: message.response_type,
   isError: message.isError || false,
 });
 
@@ -241,6 +242,7 @@ export const useChat = () => {
           eligible_count: response.eligible_count,
           total_schemes: response.total_schemes,
           compliance_verified: response.compliance_verified,
+          response_type: response.response_type || 'scheme_results',
         });
 
         if (response.session_id && response.session_id !== sessionIdRef.current) {

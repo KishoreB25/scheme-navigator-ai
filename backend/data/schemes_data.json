@@ -8,7 +8,9 @@
       "age_min": 18,
       "age_max": null,
       "income_max": null,
-      "occupation": ["farmer"],
+      "occupation": [
+        "farmer"
+      ],
       "gender": null,
       "state": null,
       "education": null,
@@ -21,7 +23,9 @@
     "state": "All India",
     "category": "Agriculture",
     "ministry": "Ministry of Agriculture & Farmers Welfare",
-    "launch_year": 2019
+    "launch_year": 2019,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://pmkisan.gov.in"
   },
   {
     "scheme_id": "PMAY",
@@ -45,7 +49,9 @@
     "state": "All India",
     "category": "Housing",
     "ministry": "Ministry of Housing and Urban Affairs",
-    "launch_year": 2015
+    "launch_year": 2015,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://pmaymis.gov.in"
   },
   {
     "scheme_id": "KCC",
@@ -56,7 +62,9 @@
       "age_min": 18,
       "age_max": 75,
       "income_max": null,
-      "occupation": ["farmer"],
+      "occupation": [
+        "farmer"
+      ],
       "gender": null,
       "state": null,
       "education": null,
@@ -69,7 +77,9 @@
     "state": "All India",
     "category": "Agriculture",
     "ministry": "Ministry of Agriculture & Farmers Welfare",
-    "launch_year": 1998
+    "launch_year": 1998,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://pmkisan.gov.in/KCC.aspx"
   },
   {
     "scheme_id": "MUDRA",
@@ -80,7 +90,10 @@
       "age_min": 18,
       "age_max": null,
       "income_max": null,
-      "occupation": ["self-employed", "entrepreneur"],
+      "occupation": [
+        "self-employed",
+        "entrepreneur"
+      ],
       "gender": null,
       "state": null,
       "education": null,
@@ -93,7 +106,9 @@
     "state": "All India",
     "category": "Business",
     "ministry": "Ministry of Finance",
-    "launch_year": 2015
+    "launch_year": 2015,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://www.mudra.org.in"
   },
   {
     "scheme_id": "BBBBP",
@@ -117,7 +132,9 @@
     "state": "All India",
     "category": "Women & Child",
     "ministry": "Ministry of Women and Child Development",
-    "launch_year": 2015
+    "launch_year": 2015,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://wcd.nic.in/bbbp-schemes"
   },
   {
     "scheme_id": "STARTUP",
@@ -128,7 +145,10 @@
       "age_min": 18,
       "age_max": null,
       "income_max": null,
-      "occupation": ["entrepreneur", "self-employed"],
+      "occupation": [
+        "entrepreneur",
+        "self-employed"
+      ],
       "gender": null,
       "state": null,
       "education": null,
@@ -141,7 +161,9 @@
     "state": "All India",
     "category": "Entrepreneurship",
     "ministry": "Department for Promotion of Industry and Internal Trade (DPIIT)",
-    "launch_year": 2016
+    "launch_year": 2016,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://www.startupindia.gov.in"
   },
   {
     "scheme_id": "PMJJBY",
@@ -165,7 +187,9 @@
     "state": "All India",
     "category": "Insurance",
     "ministry": "Ministry of Finance",
-    "launch_year": 2015
+    "launch_year": 2015,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://jansuraksha.gov.in"
   },
   {
     "scheme_id": "PMSBY",
@@ -189,7 +213,9 @@
     "state": "All India",
     "category": "Insurance",
     "ministry": "Ministry of Finance",
-    "launch_year": 2015
+    "launch_year": 2015,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://jansuraksha.gov.in"
   },
   {
     "scheme_id": "APY",
@@ -213,7 +239,9 @@
     "state": "All India",
     "category": "Pension",
     "ministry": "Ministry of Finance",
-    "launch_year": 2015
+    "launch_year": 2015,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://www.npscra.nsdl.co.in/scheme-details.php"
   },
   {
     "scheme_id": "PMJDY",
@@ -237,7 +265,9 @@
     "state": "All India",
     "category": "Financial Inclusion",
     "ministry": "Ministry of Finance",
-    "launch_year": 2014
+    "launch_year": 2014,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://pmjdy.gov.in"
   },
   {
     "scheme_id": "PMFBY",
@@ -248,7 +278,9 @@
       "age_min": 18,
       "age_max": null,
       "income_max": null,
-      "occupation": ["farmer"],
+      "occupation": [
+        "farmer"
+      ],
       "gender": null,
       "state": null,
       "education": null,
@@ -261,7 +293,9 @@
     "state": "All India",
     "category": "Agriculture",
     "ministry": "Ministry of Agriculture & Farmers Welfare",
-    "launch_year": 2016
+    "launch_year": 2016,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://pmfby.gov.in"
   },
   {
     "scheme_id": "PMKVY",
@@ -272,7 +306,10 @@
       "age_min": 15,
       "age_max": 45,
       "income_max": null,
-      "occupation": ["student", "unemployed"],
+      "occupation": [
+        "student",
+        "unemployed"
+      ],
       "gender": null,
       "state": null,
       "education": null,
@@ -285,7 +322,9 @@
     "state": "All India",
     "category": "Skill Development",
     "ministry": "Ministry of Skill Development and Entrepreneurship",
-    "launch_year": 2015
+    "launch_year": 2015,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://www.pmkvyofficial.org"
   },
   {
     "scheme_id": "NRLM",
@@ -309,7 +348,9 @@
     "state": "All India",
     "category": "Rural Livelihood",
     "ministry": "Ministry of Rural Development",
-    "launch_year": 2011
+    "launch_year": 2011,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://aajeevika.gov.in"
   },
   {
     "scheme_id": "NSP",
@@ -320,7 +361,9 @@
       "age_min": 5,
       "age_max": 35,
       "income_max": 800000,
-      "occupation": ["student"],
+      "occupation": [
+        "student"
+      ],
       "gender": null,
       "state": null,
       "education": null,
@@ -333,7 +376,9 @@
     "state": "All India",
     "category": "Education",
     "ministry": "Ministry of Education",
-    "launch_year": 2015
+    "launch_year": 2015,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://scholarships.gov.in"
   },
   {
     "scheme_id": "PMUY",
@@ -357,7 +402,9 @@
     "state": "All India",
     "category": "Health & Welfare",
     "ministry": "Ministry of Petroleum and Natural Gas",
-    "launch_year": 2016
+    "launch_year": 2016,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://www.pmuy.gov.in"
   },
   {
     "scheme_id": "ABPMJAY",
@@ -381,7 +428,9 @@
     "state": "All India",
     "category": "Health",
     "ministry": "Ministry of Health and Family Welfare",
-    "launch_year": 2018
+    "launch_year": 2018,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://pmjay.gov.in"
   },
   {
     "scheme_id": "MGNREGA",
@@ -405,7 +454,9 @@
     "state": "All India (Rural)",
     "category": "Employment",
     "ministry": "Ministry of Rural Development",
-    "launch_year": 2006
+    "launch_year": 2006,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://nrega.nic.in"
   },
   {
     "scheme_id": "STANDUP",
@@ -416,7 +467,10 @@
       "age_min": 18,
       "age_max": null,
       "income_max": null,
-      "occupation": ["entrepreneur", "self-employed"],
+      "occupation": [
+        "entrepreneur",
+        "self-employed"
+      ],
       "gender": null,
       "state": null,
       "education": null,
@@ -429,7 +483,9 @@
     "state": "All India",
     "category": "Entrepreneurship",
     "ministry": "Ministry of Finance",
-    "launch_year": 2016
+    "launch_year": 2016,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://www.standupmitra.in"
   },
   {
     "scheme_id": "SWAYAM",
@@ -440,7 +496,9 @@
       "age_min": 14,
       "age_max": null,
       "income_max": null,
-      "occupation": ["student"],
+      "occupation": [
+        "student"
+      ],
       "gender": null,
       "state": null,
       "education": null,
@@ -453,7 +511,9 @@
     "state": "All India",
     "category": "Education",
     "ministry": "Ministry of Education",
-    "launch_year": 2017
+    "launch_year": 2017,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://swayam.gov.in"
   },
   {
     "scheme_id": "PMEGP",
@@ -464,7 +524,11 @@
       "age_min": 18,
       "age_max": null,
       "income_max": null,
-      "occupation": ["self-employed", "entrepreneur", "unemployed"],
+      "occupation": [
+        "self-employed",
+        "entrepreneur",
+        "unemployed"
+      ],
       "gender": null,
       "state": null,
       "education": null,
@@ -477,7 +541,9 @@
     "state": "All India",
     "category": "Employment & Entrepreneurship",
     "ministry": "Ministry of Micro, Small & Medium Enterprises",
-    "launch_year": 2008
+    "launch_year": 2008,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://kviconline.gov.in/pmegpeportal"
   },
   {
     "scheme_id": "PMMVY",
@@ -501,7 +567,9 @@
     "state": "All India",
     "category": "Women & Child",
     "ministry": "Ministry of Women and Child Development",
-    "launch_year": 2017
+    "launch_year": 2017,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://wcd.nic.in/schemes/pradhan-mantri-matru-vandana-yojana"
   },
   {
     "scheme_id": "SBM",
@@ -525,7 +593,9 @@
     "state": "All India (Rural)",
     "category": "Sanitation",
     "ministry": "Ministry of Jal Shakti",
-    "launch_year": 2014
+    "launch_year": 2014,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://swachhbharatmission.gov.in/sbmcms/index.htm"
   },
   {
     "scheme_id": "PMGSY",
@@ -549,6 +619,8 @@
     "state": "All India (Rural)",
     "category": "Infrastructure",
     "ministry": "Ministry of Rural Development",
-    "launch_year": 2000
+    "launch_year": 2000,
+    "last_verified": "2025-06-15",
+    "data_source_url": "https://pmgsy.nic.in"
   }
 ]
