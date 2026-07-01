@@ -1,5 +1,6 @@
 import SchemeCard from '../schemes/SchemeCard';
 import { User, ExternalLink } from 'lucide-react';
+import VoiceOutputButton from './VoiceOutputButton';
 
 /**
  * Parse citation markers [Source: url] into structured objects
@@ -84,8 +85,15 @@ export default function ChatBubble({ message }) {
 
         <div className="flex-1 space-y-4">
           {/* Rendered message text with markdown support */}
-          <div className="text-[14.5px] leading-relaxed font-sans tracking-wide">
-            {isAI ? renderMarkdown(cleanText) : cleanText}
+          <div className="flex gap-4 relative group/text">
+            <div className="text-[14.5px] leading-relaxed font-sans tracking-wide flex-1">
+              {isAI ? renderMarkdown(cleanText) : cleanText}
+            </div>
+            {isAI && (
+              <div className="shrink-0 opacity-0 group-hover/text:opacity-100 transition-opacity">
+                <VoiceOutputButton text={cleanText} />
+              </div>
+            )}
           </div>
 
           {/* Citations footer (only for AI messages with sources) */}

@@ -119,6 +119,42 @@ export const voiceService = {
   },
 
   /**
+   * Speak text using Web Speech API TTS
+   */
+  speakText: (text, language = 'en-US', onEnd = () => {}) => {
+    if (!('speechSynthesis' in window)) {
+      console.warn('Text-to-speech not supported');
+      onEnd();
+      return;
+    }
+    
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = language;
+    
+    const voices = window.speechSynthesis.getVoices();
+    const targetVoice = voices.find(voice => voice.lang.startsWith(language.split('-')[0]));
+    if (targetVoice) {
+      utterance.voice = targetVoice;
+    }
+    
+    utterance.onend = onEnd;
+    utterance.onerror = onEnd;
+    
+    window.speechSynthesis.speak(utterance);
+  },
+
+  /**
+   * Stop speaking
+   */
+  stopSpeaking: () => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  },
+
+  /**
    * Get supported languages
    */
   getSupportedLanguages: () => {
