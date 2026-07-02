@@ -1,4 +1,5 @@
 import { CheckCircle2, XCircle, AlertTriangle, Info, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function SchemeCard({ scheme }) {
   const isEligible = scheme.eligible === true;
@@ -117,11 +118,17 @@ export default function SchemeCard({ scheme }) {
               href={scheme.official_link}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent/80 text-white text-xs font-semibold rounded-xl transition duration-200 shadow-glow-purple shadow-accent/15 cursor-pointer hover:shadow-accent/25 border border-accent/20"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-surface hover:bg-surface/80 text-slate-300 text-xs font-semibold rounded-xl transition duration-200 cursor-pointer border border-border/50"
             >
-              Learn More <ExternalLink className="w-3.5 h-3.5" />
+              Official Link <ExternalLink className="w-3.5 h-3.5" />
             </a>
           )}
+          <Link
+            to={`/guide/${scheme.id || scheme.scheme_id}`}
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent/80 text-white text-xs font-semibold rounded-xl transition duration-200 shadow-glow-purple shadow-accent/15 cursor-pointer hover:shadow-accent/25 border border-accent/20"
+          >
+            View Application Guide <ExternalLink className="w-3.5 h-3.5" />
+          </Link>
         </div>
       </div>
     </div>

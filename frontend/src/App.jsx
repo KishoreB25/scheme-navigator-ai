@@ -3,6 +3,7 @@ import Sidebar from './components/layout/Sidebar';
 import ChatPage from './pages/ChatPage';
 import ProfilePage from './pages/ProfilePage';
 import AlertsPage from './pages/AlertsPage';
+import GuidePage from './pages/GuidePage';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/alerts" element={<AlertsPage />} />
+          <Route path="/guide/:schemeId" element={<GuidePage />} />
         </Routes>
       </main>
     </div>
