@@ -102,6 +102,7 @@ CONVERSATIONAL_PROMPT = """You are PolicySetu AI. Respond to this conversational
 **User Message**: {query}
 **Chat History**: {chat_history}
 **User Profile**: {profile}
+**Response Language**: {language}
 
 ## Guidelines:
 - For **greetings**: Welcome warmly. Briefly introduce yourself as a government scheme advisor. Ask how you can help.

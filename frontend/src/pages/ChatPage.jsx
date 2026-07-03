@@ -1,14 +1,16 @@
 import { useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Sparkles, Trash2, ShieldCheck, Database, Sliders, ArrowRight, Info, IndianRupee, MapPin, Briefcase, Calendar, LogOut } from 'lucide-react';
 import ChatBubble from '../components/chat/ChatBubble';
 import ChatInput from '../components/chat/ChatInput';
 import useChat from '../hooks/useChat';
 import useProfile from '../hooks/useProfile';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import GoogleLoginButton from '../components/GoogleLoginButton';
-import { Sparkles, Trash2, ShieldCheck, Database, Sliders, ArrowRight, Info, IndianRupee, MapPin, Briefcase, Calendar, LogOut } from 'lucide-react';
 
 export default function ChatPage() {
+  const { t } = useLanguage();
   const { messages, isLoading, error, sendQuery, clearHistory } = useChat();
   const { profile, isComplete } = useProfile();
   const { user, logout } = useAuth();
@@ -29,7 +31,7 @@ export default function ChatPage() {
   const welcomeMessage = {
     id: 'welcome',
     sender: 'assistant',
-    content: `Namaste! I am PolicySetu AI, your personal Government Scheme & Citizen Services Advisor.\n\nTo find the most suitable schemes for you, please fill out your profile in the **User Profile** section so I can instantly check your eligibility.\n\nHow can I help you today? (e.g., "What schemes are available for a farmer in Gujarat?")`,
+    content: t('welcomeMessage'),
     response_type: 'conversational',
   };
 

@@ -66,6 +66,7 @@ export const sendMessage = async (text, profile, userId = null, sessionId = null
       profile: profile || {},
       user_id: userId,
       session_id: sessionId,
+      language: localStorage.getItem('language') || 'en',
     };
 
     const response = await apiClient.post('/chat', payload);

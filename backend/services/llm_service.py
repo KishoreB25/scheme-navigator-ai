@@ -234,6 +234,7 @@ class GeminiService:
         query: str,
         chat_history: List[Dict] = None,
         profile: Dict = None,
+        language: str = "en",
     ) -> Optional[str]:
         """
         Generate a response for non-scheme queries (greetings, thanks, etc.).
@@ -246,6 +247,7 @@ class GeminiService:
             query=query,
             chat_history=history_text,
             profile=profile_text,
+            language=language,
         )
 
         return self._call_llm(
