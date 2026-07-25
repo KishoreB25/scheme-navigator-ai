@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { MessageSquare, User, Bell, Phone, LogOut, Globe } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { languages } from '../../i18n/translations';
+import WhatsAppSubscribe from '../WhatsAppSubscribe';
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
   const { locale, setLocale, t } = useLanguage();
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
 
   const navItems = [
     { name: t('chatAssistant'), path: '/chat', icon: MessageSquare },
@@ -68,7 +71,10 @@ export default function Sidebar() {
         <div className="my-4 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent"></div>
 
         {/* WhatsApp Demo Integration Button */}
-        <button className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all border border-transparent hover:border-emerald-500/20 group">
+        <button 
+          onClick={() => setIsWhatsAppModalOpen(true)}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all border border-transparent hover:border-emerald-500/20 group"
+        >
           <Phone className="w-5 h-5 shrink-0 group-hover:animate-pulse" />
           <span className="font-medium text-sm tracking-wide">{t('whatsappDemo')}</span>
         </button>
@@ -105,6 +111,11 @@ export default function Sidebar() {
       <div className="p-4 border-t border-border/80 bg-surface/10 text-[10px] text-slate-500 text-center tracking-wider">
         v1.0 • Built with 🧡 for Bharat
       </div>
+
+      <WhatsAppSubscribe 
+        isOpen={isWhatsAppModalOpen} 
+        onClose={() => setIsWhatsAppModalOpen(false)} 
+      />
     </aside>
   );
 }

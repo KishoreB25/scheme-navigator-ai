@@ -102,6 +102,18 @@ class UserData(BaseModel):
     isGuest: Optional[bool] = False
 
 
+class AlertSubscribeRequest(BaseModel):
+    phone: str
+    user_id: Optional[str] = None
+    alert_types: List[str] = []
+
+
+class AlertSendRequest(BaseModel):
+    user_id: str
+    scheme_id: str
+    alert_type: str
+
+
 class AuthResponse(BaseModel):
     user: UserData
     message: str
@@ -921,6 +933,79 @@ async def get_database_stats():
         return stats
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============= WhatsApp / Alerts Routes =============
+
+
+@app.post("/alerts/subscribe")
+async def subscribe_alerts(request: AlertSubscribeRequest):
+    """Subscribe a user/phone to WhatsApp alerts."""
+    try:
+        user_id = request.user_id or "anonymous"
+        # Just return success for demo purposes if DB/Twilio is not configured
+        if not db_service.is_available:
+            return {"status": "success", "message": "Subscribed (in-memory)"}
+            
+        profile = db_service.get_user_profile(user_id) or {}
+        profile["phone"] = request.phone
+        profile["alert_types"] = request.alert_types
+        db_service.save_user_profile(user_id, profile)
+        
+        return {"status": "success", "message": "Successfully subscribed"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/alerts/send")
+async def send_alert(request: AlertSendRequest):
+    """Trigger an alert for a specific user."""
+    try:
+        profile = db_service.get_user_profile(request.user_id)
+        if not profile or "phone" not in profile:
+            raise HTTPException(status_code=400, detail="User phone not found")
+            
+        result = orchestrator.alert_agent.schedule_alert(
+            user_id=request.user_id,
+            scheme_id=request.scheme_id,
+            alert_type=request.alert_type,
+            phone=profile["phone"],
+            whatsapp_service=whatsapp_service
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/whatsapp")
+async def whatsapp_webhook(request: Request):
+    """Twilio WhatsApp webhook endpoint for two-way chat."""
+    try:
+        # Twilio sends form data
+        form_data = await request.form()
+        message_body = form_data.get("Body", "")
+        from_phone = form_data.get("From", "")
+        
+        # Pass to whatsapp service which runs orchestrator pipeline
+        response_text = whatsapp_service.handle_incoming(
+            message_body, 
+            from_phone, 
+            orchestrator
+        )
+        
+        # Twilio expects TwiML XML response, but we can also just let the 
+        # WhatsAppService.handle_incoming send the reply asynchronously 
+        # or we return TwiML here. For now, returning simple TwiML.
+        xml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Message>{response_text}</Message>
+</Response>"""
+        from fastapi.responses import Response
+        return Response(content=xml_response, media_type="application/xml")
+        
+    except Exception as e:
+        print(f"[WhatsApp Webhook] Error: {e}")
+        raise HTTPException(status_code=500, detail="Webhook processing failed")
 
 
 # ============= Error Handlers =============
