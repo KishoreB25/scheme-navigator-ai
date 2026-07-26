@@ -53,6 +53,9 @@ class ActionAgent:
             "required_documents": documents,
             "official_link": official_link,
             "ministry": scheme.get("ministry", MISSING_INFO_RESPONSE),
+            "estimated_time": scheme.get("estimated_time", "Not specified"),
+            "deadline_info": scheme.get("deadline_info", "No deadline specified"),
+            "helpline_number": scheme.get("helpline_number", "No helpline available"),
         }
 
     def process(self, schemes: List[Dict]) -> Dict:

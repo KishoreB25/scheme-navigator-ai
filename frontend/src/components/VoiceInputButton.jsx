@@ -48,17 +48,31 @@ export default function VoiceInputButton({ onTranscript }) {
       <button
         onClick={handleClick}
         title={isListening ? 'Stop recording' : 'Start recording'}
-        className={`p-2 rounded-lg transition ${
+        className={`p-2 rounded-lg transition relative overflow-hidden flex items-center justify-center ${
           isListening
-            ? 'bg-red-500 text-white animate-pulse'
+            ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
             : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
         }`}
       >
-        {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+        {isListening ? (
+          <>
+             <MicOff size={20} className="relative z-10" />
+             <div className="absolute inset-0 bg-red-400 animate-ping opacity-75"></div>
+          </>
+        ) : (
+          <Mic size={20} />
+        )}
       </button>
 
       {(transcript || interimTranscript) && (
-        <div className="text-xs text-gray-700 bg-gray-100 px-3 py-1 rounded-lg border border-gray-300 max-w-xs truncate">
+        <div className="text-xs text-gray-700 bg-gray-100 px-3 py-1 rounded-lg border border-gray-300 max-w-xs truncate flex items-center gap-2">
+          {isListening && (
+            <div className="flex gap-0.5 items-end h-3">
+               <span className="w-0.5 bg-blue-500 h-full animate-[bounce_1s_infinite]"></span>
+               <span className="w-0.5 bg-blue-500 h-2/3 animate-[bounce_1s_infinite_0.2s]"></span>
+               <span className="w-0.5 bg-blue-500 h-1/2 animate-[bounce_1s_infinite_0.4s]"></span>
+            </div>
+          )}
           {transcript || interimTranscript}
         </div>
       )}
