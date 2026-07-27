@@ -74,6 +74,3 @@ For detailed info: See `INTEGRATION_COMPLETE.md` or `INTEGRATION_TEST_GUIDE.md`
 | Empty vector DB on first start | Let startup finish once; ingestion runs automatically |
 
 ---
-
-**Status:** Production Ready  
-**Last Updated:** June 2, 2026
