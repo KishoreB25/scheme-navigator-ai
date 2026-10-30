@@ -27,11 +27,6 @@ const toMessage = (message) => ({
 const getUserStorageKey = (userId) => `${STORAGE_PREFIX}:${userId}`;
 const getSessionStorageKey = (userId) => `${SESSION_PREFIX}:${userId}`;
 
-const getSessionFromMessages = (messages) => {
-  if (!messages.length) return null;
-  return messages[messages.length - 1].session_id || null;
-};
-
 const isTransientErrorMessage = (message) => {
   const content = String(message?.content || '').toLowerCase();
   return Boolean(message?.isError) || content.startsWith('error:');

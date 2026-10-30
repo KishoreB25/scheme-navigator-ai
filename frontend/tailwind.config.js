@@ -7,9 +7,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#0B0F19', // Premium midnight dark slate
-        surface: '#161F30', // Card dark slate
-        'surface-hover': '#1F2B42', // Card hover state
+        background: '#020617', // Deep OLED black
+        surface: '#0F172A', // Slate card base
+        'surface-hover': '#1E293B', // Slate card hover
         primary: '#F59E0B', // Saffron Gold (brand color)
         secondary: '#FBBF24', // Lighter Saffron Gold
         accent: '#8B5CF6', // Royal tech purple
@@ -21,8 +21,8 @@ export default {
         border: '#1E293B',
       },
       fontFamily: {
-        sans: ['Lato', 'system-ui', 'sans-serif'],
-        display: ['"EB Garamond"', 'Georgia', 'serif'],
+        sans: ['"Fira Sans"', 'system-ui', 'sans-serif'],
+        display: ['"Fira Code"', 'monospace'],
       },
       animation: {
         'pulse-dot': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',

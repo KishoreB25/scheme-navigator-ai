@@ -1,31 +1,9 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import Sidebar from './components/layout/Sidebar';
-import ChatPage from './pages/ChatPage';
-import ProfilePage from './pages/ProfilePage';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import AppShell from './components/layout/AppShell';
 import AlertsPage from './pages/AlertsPage';
+import ChatPage from './pages/ChatPage';
 import GuidePage from './pages/GuidePage';
-
-function App() {
-  return (
-    <div className="flex h-dvh w-screen overflow-hidden bg-background text-slate-100">
-      {/* Background decorations */}
-      <div className="fixed top-[-10%] left-[-10%] w-[45%] h-[45%] rounded-full bg-primary/10 blur-[140px] pointer-events-none animate-blob"></div>
-      <div className="fixed bottom-[-10%] right-[-10%] w-[45%] h-[45%] rounded-full bg-accent/10 blur-[140px] pointer-events-none animate-blob" style={{ animationDelay: '2.5s' }}></div>
-      <div className="fixed top-[30%] left-[55%] w-[35%] h-[35%] rounded-full bg-primary/5 blur-[120px] pointer-events-none animate-blob" style={{ animationDelay: '5s' }}></div>
-
-      <Sidebar />
-      
-      <main className="flex-1 h-full relative z-10 overflow-y-auto bg-transparent">
-        <Routes>
-          <Route path="/" element={<Navigate to="/chat" replace />} />
-          <Route path="/chat" element={<ChatPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/alerts" element={<AlertsPage />} />
-          <Route path="/guide/:schemeId" element={<GuidePage />} />
-        </Routes>
-      </main>
-    </div>
-  );
-}
-
-export default App;
+import Home from './pages/Home';
+import ProfilePage from './pages/ProfilePage';
+const WorkspaceRoute = ({ children }) => <AppShell>{children}</AppShell>;
+export default function App() { const location = useLocation(); return <Routes><Route path="/" element={<Home/>}/><Route path="/chat" element={<WorkspaceRoute><ChatPage/></WorkspaceRoute>}/><Route path="/profile" element={<WorkspaceRoute><ProfilePage/></WorkspaceRoute>}/><Route path="/alerts" element={<WorkspaceRoute><AlertsPage/></WorkspaceRoute>}/><Route path="/guide/:schemeId" element={<WorkspaceRoute><GuidePage/></WorkspaceRoute>}/><Route path="*" element={<Navigate to={location.pathname.startsWith('/guide') ? '/' : '/'} replace/>}/></Routes>; }

@@ -27,7 +27,7 @@ export const checkBackendReady = async (maxWaitMs = 60000) => {
         return true;
       }
       console.log('⏳ Backend initializing...', response.data.message);
-    } catch (error) {
+    } catch {
       console.log('⏳ Waiting for backend to start...');
     }
     
@@ -120,7 +120,7 @@ export const updateProfile = async (firebaseUid, profileData) => {
     // Filter out empty fields - especially important for gender
     const cleanedProfile = Object.fromEntries(
       Object.entries(profileData).filter(
-        ([_, value]) => value !== '' && value !== null && value !== undefined
+        ([, value]) => value !== '' && value !== null && value !== undefined
       )
     );
 

@@ -1,27 +1,4 @@
+import { ArrowRight, BadgeCheck, BellRing, Bot, FileCheck2, Search, ShieldCheck, Sparkles } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import ChatInterface from '../components/ChatInterface';
-import ProfileForm from '../components/ProfileForm';
-import RightPanel from '../components/RightPanel';
-import './Home.css';
-
-export default function Home() {
-  const [showProfile, setShowProfile] = useState(false);
-
-  return (
-    <div className="max-w-7xl mx-auto h-full">
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 p-6 min-h-[calc(100vh-80px)]">
-        {/* Right Panel - Sign in or Profile Info */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-20">
-            <RightPanel />
-          </div>
-        </div>
-
-        {/* Main Chat Area */}
-        <div className="lg:col-span-3">
-          <ChatInterface />
-        </div>
-      </div>
-    </div>
-  );
-}
+export default function Home(){const[query,setQuery]=useState('');const navigate=useNavigate();const go=e=>{e.preventDefault();navigate('/chat',{state:{query:query||'Find schemes relevant to my profile'}})};return <main className="landing"><nav className="landing-nav"><Link to="/" className="brand"><span className="brand-mark">PS</span><span>Policy<span>Setu</span></span></Link><div className="landing-nav-actions"><Link className="button button-ghost" to="/profile">Create profile</Link><Link className="button button-primary" to="/chat">Open workspace <ArrowRight size={15}/></Link></div></nav><section className="hero"><div><p className="overline">One place for your public benefits</p><h1>Government schemes, made <em>clearer for you.</em></h1><p>PolicySetu helps every citizen discover verified benefits, understand eligibility, and take the next step with confidence.</p><form className="hero-actions" onSubmit={go}><input aria-label="Ask a question" value={query} onChange={e=>setQuery(e.target.value)} placeholder="e.g. Support for a small farmer in Tamil Nadu"/><button className="button button-primary">Find schemes <Search size={15}/></button></form><div className="hero-trust"><ShieldCheck size={15}/> Built for clarity. Designed around official scheme information.</div></div><div className="hero-visual"><div className="visual-card"><header><div><h3>Your scheme matches</h3><span>Updated from your citizen profile</span></div><span className="tag">3 matches</span></header><div className="match-row"><span className="scheme-icon"><FileCheck2 size={18}/></span><div><strong>PM-KISAN Samman Nidhi</strong><span>Income support for eligible farmers</span></div><b className="match-score">98% match</b></div><div className="match-row"><span className="scheme-icon"><BadgeCheck size={18}/></span><div><strong>Pradhan Mantri Fasal Bima</strong><span>Crop insurance protection</span></div><b className="match-score">91% match</b></div><div className="mini-insight"><Sparkles size={13}/> <b>Helpful next step:</b> Complete your profile to see documents, timelines, and official application links.</div></div></div></section><section className="stats"><div><strong>23+</strong><span>Government schemes indexed</span></div><div><strong>1 profile</strong><span>Personalised eligibility view</span></div><div><strong>Verified</strong><span>Sources and next-step guidance</span></div></section><section className="feature-section"><p className="overline">A simpler citizen journey</p><h2>Everything you need to claim what you deserve.</h2><p>Move from discovery to action without navigating confusing public portals alone.</p><div className="feature-grid"><article className="feature panel"><Bot size={22}/><h3>Ask in your own words</h3><p>Describe your needs naturally. The AI translates your situation into relevant scheme criteria.</p></article><article className="feature panel"><FileCheck2 size={22}/><h3>Know what to prepare</h3><p>Get simple application guidance, document requirements, and practical next steps.</p></article><article className="feature panel"><BellRing size={22}/><h3>Don’t miss an opportunity</h3><p>Save your profile and return to a curated view of benefits you may be eligible for.</p></article></div></section></main>}
